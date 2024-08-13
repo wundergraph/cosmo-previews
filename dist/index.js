@@ -34588,7 +34588,6 @@ const getInputs = () => {
     }
     const actionType = create ? 'create' : update ? 'update' : 'destroy';
     const inputFile = (0, pathe_1.resolve)(process.cwd(), configPath);
-    const inputFileLocation = (0, pathe_1.dirname)(inputFile);
     if (!(0, node_fs_1.existsSync)(inputFile)) {
         core.setFailed(`The input file '${inputFile}' does not exist. Please check the path.`);
         return;
@@ -34608,7 +34607,7 @@ const getInputs = () => {
     const subgraphs = config.subgraphs.map((subgraph) => {
         return {
             name: subgraph.name,
-            schemaPath: (0, pathe_1.resolve)(inputFileLocation, subgraph.schema_path),
+            schemaPath: (0, pathe_1.resolve)(process.cwd(), subgraph.schema_path),
             routingUrl: subgraph.routing_url,
         };
     });
@@ -34703,8 +34702,12 @@ async function run() {
 /**
  * Exports the API key as an environment variable.
  */
-function setUpWgc(apiKey) {
-    exec.exec('npm install -g wgc@latest');
+async function setUpWgc(apiKey) {
+    core.info('Installing wgc@latest globally...');
+    await exec.exec('npm install -g wgc');
+    // Adding npm global bin to PATH
+    const npmGlobalBin = await exec.getExecOutput('npm bin -g');
+    core.addPath(npmGlobalBin.stdout.trim());
     core.exportVariable('COSMO_API_KEY', apiKey);
 }
 const create = async ({ inputs, prNumber }) => {
