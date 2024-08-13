@@ -40474,6 +40474,7 @@ async function run() {
             allDiffFiles: changedFiles,
             filePatterns: ['**/*.graphql', '**/*.gql', '**/*.graphqls'],
         });
+        core.info(`Changed graphQL files: ${JSON.stringify(changedGraphQLFiles)}`);
         if (inputs.actionType === 'update') {
             const isCosmoConfigChanged = getFilteredChangedFiles({
                 allDiffFiles: changedFiles,

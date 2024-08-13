@@ -34,6 +34,7 @@ export async function run(): Promise<void> {
       allDiffFiles: changedFiles,
       filePatterns: ['**/*.graphql', '**/*.gql', '**/*.graphqls'],
     });
+    core.info(`Changed graphQL files: ${JSON.stringify(changedGraphQLFiles)}`);
 
     if (inputs.actionType === 'update') {
       const isCosmoConfigChanged =
