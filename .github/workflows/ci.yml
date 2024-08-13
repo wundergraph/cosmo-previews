@@ -22,6 +22,13 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
       - uses: ./
@@ -44,6 +51,13 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
       - uses: ./
         with:
           config_path: .github/cosmo.yaml
@@ -60,6 +74,13 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
 
       - uses: ./
         id: ff
