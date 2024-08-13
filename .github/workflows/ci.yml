@@ -9,12 +9,12 @@ on:
       - 'subgraphs/family/schema.graphql'
       - 'subgraphs/products/schema.graphql'
       - 'subgraphs/hobbies/schema.graphql'
-    types: [synchronize, closed, opened, reopened]
+    types: [opened, synchronize, closed, reopened]
 
 jobs:
   create:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.action == 'opened' || github.event.pull_request.action == 'reopened'
+    if: github.event.pull_request.opened == 'true' || github.event.pull_request.reopened == 'true'
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
@@ -31,7 +31,7 @@ jobs:
 
   update:
     runs-on: ubuntu-latest
-    if: github.event_name == 'synchronize'
+    if: github.event.pull_request.synchronize == 'true'
     steps:
       - uses: ./
         with:
@@ -43,7 +43,7 @@ jobs:
 
   destroy:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.action == 'closed'
+    if: github.event.pull_request.closed == 'true'
     steps:
       - uses: ./
         id: ff
@@ -53,4 +53,3 @@ jobs:
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
       - run: |
           echo "Feature flag and the feature subgraphs have been destroyed. You can now unprovision the subgraph services."
-
