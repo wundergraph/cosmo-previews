@@ -9,7 +9,11 @@ on:
       - 'subgraphs/family/schema.graphql'
       - 'subgraphs/products/schema.graphql'
       - 'subgraphs/hobbies/schema.graphql'
-    types: [opened, synchronize, closed, reopened]
+    types: 
+      - opened
+      - reopened
+      - closed
+      - synchronize
 
 jobs:
   create:
