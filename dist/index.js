@@ -40529,6 +40529,10 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
         await exec.exec(command);
         featureSubgraphs.push(featureSubgraphName);
     }
+    if (featureSubgraphs.length === 0) {
+        core.info('No subgraphs found to create feature subgraphs.');
+        return;
+    }
     for (const featureFlag of inputs.featureFlags) {
         const command = `wgc feature-flag create ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
         await exec.exec(command);
@@ -40546,6 +40550,10 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
         const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
         await exec.exec(command);
         featureSubgraphs.push(featureSubgraphName);
+    }
+    if (featureSubgraphs.length === 0) {
+        core.info('No changes found in subgraphs to update feature subgraphs.');
+        return;
     }
     for (const featureFlag of inputs.featureFlags) {
         const command = `wgc feature-flag update ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
