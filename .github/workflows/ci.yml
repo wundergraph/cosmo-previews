@@ -18,7 +18,7 @@ jobs:
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
-      - uses: wundergraph/feature-flags@main
+      - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'synchronize'
     steps:
-      - uses: wundergraph/feature-flags@main
+      - uses: ./
         with:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.action == 'closed'
     steps:
-      - uses: wundergraph/feature-flags@main
+      - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
