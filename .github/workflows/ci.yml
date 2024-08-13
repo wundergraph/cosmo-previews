@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Dependencies
         id: npm-ci
-        run: npm ci
+        run: npm i -g wgc@latest
 
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
