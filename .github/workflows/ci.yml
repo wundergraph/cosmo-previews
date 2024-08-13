@@ -18,7 +18,7 @@ on:
 jobs:
   create:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.opened == 'true' || github.event.pull_request.reopened == 'true'
+    if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
@@ -35,7 +35,7 @@ jobs:
 
   update:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.synchronize == 'true'
+    if: github.event.action == 'synchronize'
     steps:
       - uses: ./
         with:
@@ -47,7 +47,7 @@ jobs:
 
   destroy:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.closed == 'true'
+    if: github.event.action == 'closed'
     steps:
       - uses: ./
         id: ff
