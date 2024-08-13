@@ -9,15 +9,23 @@ branding:
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
-    required: true
-    default: '1000'
+  config_path:
+    description: 'The path to cosmo.yaml file'
+    default: '.github/cosmo.yaml'
+  create:
+    description: 'Create the feature flag + subgraphs from cosmo.yaml'
+    default: false
+  update:
+    description: 'Only update the feature subgraphs from cosmo.yaml'
+    default: false
+  destroy:
+    description: 'Only destroy the feature flag + subgraphs from cosmo.yaml'
+    default: false
+  cosmo_api_key:
+    description: 'The API key to authenticate with Cosmo'
 
-# Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
+# # Define your outputs here.
+# outputs:
 
 runs:
   using: node20
