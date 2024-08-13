@@ -7,17 +7,17 @@ feature_flags:
 
 subgraphs:
   - name: 'employees'
-    schema: 'subgraphs/employees/schema.graphql'
+    schema_path: 'subgraphs/employees/schema.graphql'
     routing_url: 'https://employees-api.fly.dev/graphql'
 
   - name: 'family'
-    schema: 'subgraphs/family/schema.graphql'
+    schema_path: 'subgraphs/family/schema.graphql'
     routing_url: 'https://family-api.fly.dev/graphql'
 
   - name: 'products'
-    schema: 'subgraphs/products/schema.graphql'
+    schema_path: 'subgraphs/products/schema.graphql'
     routing_url: 'https://products-api-fs.fly.dev/graphql'
 
   - name: 'hobbies'
-    schema: 'subgraphs/hobbies/schema.graphql'
+    schema_path: 'subgraphs/hobbies/schema.graphql'
     routing_url: 'https://hobbies-api.fly.dev/graphql'
