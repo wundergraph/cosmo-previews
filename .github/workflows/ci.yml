@@ -65,7 +65,7 @@ jobs:
 
       - name: Install Dependencies
         id: npm-ci
-        run: npm ci
+        run: npm i -g wgc@latest
 
       - uses: ./
         with:
