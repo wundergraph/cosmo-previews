@@ -9,16 +9,20 @@ on:
       - 'subgraphs/family/schema.graphql'
       - 'subgraphs/products/schema.graphql'
       - 'subgraphs/hobbies/schema.graphql'
-    types: [opened, synchronize, closed, reopened]
+    types:
+      - opened
+      - reopened
+      - closed
+      - synchronize
 
 jobs:
   create:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.opened == 'true' || github.event.pull_request.reopened == 'true'
+    if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
-      - uses: ./
+      - uses: ./action.yml
         id: ff
         with:
           config_path: .github/cosmo.yaml
@@ -31,9 +35,9 @@ jobs:
 
   update:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.synchronize == 'true'
+    if: github.event.action == 'synchronize'
     steps:
-      - uses: ./
+      - uses: ./action.yml
         with:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
@@ -43,9 +47,9 @@ jobs:
 
   destroy:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.closed == 'true'
+    if: github.event.action == 'closed'
     steps:
-      - uses: ./
+      - uses: ./action.yml
         id: ff
         with:
           config_path: .github/cosmo.yaml

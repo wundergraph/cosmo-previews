@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
-import { Inputs, getInputs } from './inputs';
+import { Inputs, getInputs } from './inputs.js';
 
 /**
  * The main function for the action.
@@ -33,19 +33,24 @@ export async function run(): Promise<void> {
     setUpWgc(inputs.cosmoApiKey);
 
     switch (inputs.actionType) {
-      case 'create':
+      case 'create': {
         await create({ inputs, prNumber });
         break;
-      case 'update':
+      }
+      case 'update': {
         await update({ inputs, prNumber });
         break;
-      case 'destroy':
+      }
+      case 'destroy': {
         await destroy({ inputs, prNumber });
         break;
+      }
     }
   } catch (error) {
     // Fail the workflow run if an error occurs
-    if (error instanceof Error) core.setFailed(error.message);
+    if (error instanceof Error) {
+      core.setFailed(error.message);
+    }
   }
 }
 
