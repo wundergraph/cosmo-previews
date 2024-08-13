@@ -16,7 +16,7 @@ subgraphs:
 
   - name: 'products'
     schema_path: 'subgraphs/products/schema.graphql'
-    routing_url: 'https://products-api-fs.fly.dev/graphql'
+    routing_url: 'https://product-api-fs.fly.dev/graphql'
 
   - name: 'hobbies'
     schema_path: 'subgraphs/hobbies/schema.graphql'

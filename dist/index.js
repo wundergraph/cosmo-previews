@@ -34719,12 +34719,10 @@ const create = async ({ inputs, prNumber }) => {
         const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
         await exec.exec(command);
         featureSubgraphs.push(featureSubgraphName);
-        core.info(`Feature subgraph ${featureSubgraphName} using ${subgraph.name} as base subgraph is created.`);
     }
     for (const featureFlag of inputs.featureFlags) {
         const command = `wgc feature-flag create ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
         await exec.exec(command);
-        core.info(`Feature flag ${featureFlag.name} is created.`);
     }
 };
 const update = async ({ inputs, prNumber }) => {
@@ -34735,12 +34733,10 @@ const update = async ({ inputs, prNumber }) => {
         const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
         await exec.exec(command);
         featureSubgraphs.push(featureSubgraphName);
-        core.info(`Feature subgraph ${featureSubgraphName} using ${subgraph.name} as base subgraph is updated.`);
     }
     for (const featureFlag of inputs.featureFlags) {
         const command = `wgc feature-flag update ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
         await exec.exec(command);
-        core.info(`Feature flag ${featureFlag.name} is updated.`);
     }
 };
 const destroy = async ({ inputs, prNumber }) => {
@@ -34748,13 +34744,11 @@ const destroy = async ({ inputs, prNumber }) => {
     for (const featureFlag of inputs.featureFlags) {
         const command = `wgc feature-flag delete ${featureFlag.name} -n ${inputs.namespace} -f`;
         await exec.exec(command);
-        core.info(`Feature flag ${featureFlag.name} is deleted.`);
     }
     for (const subgraph of inputs.subgraphs) {
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
         const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
-        core.info(`Feature subgraph ${featureSubgraphName} is deleted.`);
     }
 };
 
