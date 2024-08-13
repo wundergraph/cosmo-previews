@@ -1,6 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import * as yaml from 'js-yaml';
-import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'pathe';
 
 export type Config = {
@@ -47,7 +47,7 @@ export const getInputs = (): Inputs | undefined => {
   }
 
   // Ensure only one of create, update, or destroy is true
-  const trueCount = [create, update, destroy].filter((value) => value).length;
+  const trueCount = [create, update, destroy].filter(Boolean).length;
   if (trueCount !== 1) {
     core.setFailed('Exactly one of "create", "update", or "destroy" must be true.');
     return;

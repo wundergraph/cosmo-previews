@@ -9,7 +9,7 @@ subgraphs:
   - name: 'employees'
     schema: 'subgraphs/employees/schema.graphql'
     routing_url: 'https://employees-api.fly.dev/graphql'
-  
+
   - name: 'family'
     schema: 'subgraphs/family/schema.graphql'
     routing_url: 'https://family-api.fly.dev/graphql'

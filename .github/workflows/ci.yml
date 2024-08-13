@@ -9,7 +9,7 @@ on:
       - 'subgraphs/family/schema.graphql'
       - 'subgraphs/products/schema.graphql'
       - 'subgraphs/hobbies/schema.graphql'
-    types: 
+    types:
       - opened
       - reopened
       - closed
