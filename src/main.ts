@@ -51,8 +51,9 @@ export async function run(): Promise<void> {
 /**
  * Exports the API key as an environment variable.
  */
-function setUpWgc(apiKey: string): void {
-  exec.exec('npm install -g wgc@latest');
+async function setUpWgc(apiKey: string): Promise<void> {
+  core.info('Installing wgc@latest globally...');
+  await exec.exec('npm install -g wgc@latest');
   core.exportVariable('COSMO_API_KEY', apiKey);
 }
 
