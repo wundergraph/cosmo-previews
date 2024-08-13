@@ -40469,6 +40469,7 @@ async function run() {
         }
         setUpWgc(inputs.cosmoApiKey);
         const changedFiles = await getChangedFilesFromGithubAPI({ githubToken: inputs.githubToken });
+        core.info(`Changed files: ${JSON.stringify(changedFiles)}`);
         const changedGraphQLFiles = getFilteredChangedFiles({
             allDiffFiles: changedFiles,
             filePatterns: ['**/*.graphql', '**/*.gql', '**/*.graphqls'],
