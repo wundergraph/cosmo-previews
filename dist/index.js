@@ -36296,6 +36296,8 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 
+;// CONCATENATED MODULE: external "node:path"
+const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/exec/lib/exec.js
@@ -40450,6 +40452,7 @@ const getInputs = () => {
 
 
 
+
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -40520,7 +40523,7 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
     // Create the resources
     const featureSubgraphs = [];
     for (const changedFile of changedGraphQLFiles) {
-        const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
         if (!subgraph) {
             continue;
         }
@@ -40542,7 +40545,7 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
     // Update the resources
     const featureSubgraphs = [];
     for (const changedFile of changedGraphQLFiles) {
-        const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
         if (!subgraph) {
             continue;
         }
@@ -40567,7 +40570,7 @@ const destroy = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
         await exec.exec(command);
     }
     for (const changedFile of changedGraphQLFiles) {
-        const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
         if (!subgraph) {
             continue;
         }

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
@@ -94,7 +95,7 @@ const create = async ({
   // Create the resources
   const featureSubgraphs = [];
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
       continue;
     }
@@ -125,7 +126,7 @@ const update = async ({
   // Update the resources
   const featureSubgraphs = [];
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
       continue;
     }
@@ -159,7 +160,7 @@ const destroy = async ({
     await exec.exec(command);
   }
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => changedFile.includes(subgraph.schemaPath));
+    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
       continue;
     }
