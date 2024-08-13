@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
       - uses: ./
@@ -36,6 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'synchronize'
     steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
       - uses: ./
         with:
           config_path: .github/cosmo.yaml
@@ -48,6 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
     steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
       - uses: ./
         id: ff
         with:
