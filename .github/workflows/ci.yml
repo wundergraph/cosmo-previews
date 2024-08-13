@@ -22,7 +22,7 @@ jobs:
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
-      - uses: action.yml
+      - uses: ./action.yml
         id: ff
         with:
           config_path: .github/cosmo.yaml
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'synchronize'
     steps:
-      - uses: action.yml
+      - uses: ./action.yml
         with:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
     steps:
-      - uses: action.yml
+      - uses: ./action.yml
         id: ff
         with:
           config_path: .github/cosmo.yaml
