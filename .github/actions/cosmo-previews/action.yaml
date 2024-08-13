@@ -1,0 +1,32 @@
+name: 'Cosmo Previews'
+description: 'This action helps to create a preview of your new subgraph changes.'
+author: 'WunderGraph Cosmo'
+
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+branding:
+  icon: 'heart'
+  color: 'red'
+
+# Define your inputs here.
+inputs:
+  config_path:
+    description: 'The path to cosmo.yaml file'
+    default: '.github/cosmo.yaml'
+  create:
+    description: 'Create the feature flag + subgraphs from cosmo.yaml'
+    default: false
+  update:
+    description: 'Only update the feature subgraphs from cosmo.yaml'
+    default: false
+  destroy:
+    description: 'Only destroy the feature flag + subgraphs from cosmo.yaml'
+    default: false
+  cosmo_api_key:
+    description: 'The API key to authenticate with Cosmo'
+
+# # Define your outputs here.
+# outputs:
+
+runs:
+  using: node20
+  main: dist/index.js
