@@ -30,6 +30,7 @@ jobs:
           config_path: .github/cosmo.yaml
           create: true # Create the feature flag + subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+          github_token: ${{ secrets. GITHUB_TOKEN }}
       - run: |
           echo "Feature flag has been created. You can now provision the subgraph service."
 
@@ -48,6 +49,7 @@ jobs:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+          github_token: ${{ secrets. GITHUB_TOKEN }}
       - run: |
           echo "Feature subgraph has been updated. You can now update the subgraph service."
 
@@ -65,5 +67,6 @@ jobs:
           config_path: .github/cosmo.yaml
           destroy: true # Only destroy the feature flag + subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+          github_token: ${{ secrets. GITHUB_TOKEN }}
       - run: |
           echo "Feature flag and the feature subgraphs have been destroyed. You can now unprovision the subgraph services."

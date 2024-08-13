@@ -34561,22 +34561,27 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputs = void 0;
+const node_fs_1 = __nccwpck_require__(7561);
 const core = __importStar(__nccwpck_require__(2186));
 const yaml = __importStar(__nccwpck_require__(1917));
-const node_fs_1 = __nccwpck_require__(7561);
 const pathe_1 = __nccwpck_require__(5577);
 const getInputs = () => {
     const configPath = core.getInput('config_path') || '.github/cosmo.yaml';
     const cosmoApiKey = core.getInput('cosmo_api_key', { required: true });
+    const githubToken = core.getInput('github_token', { required: true });
     const create = core.getInput('create') === 'true';
     const update = core.getInput('update') === 'true';
     const destroy = core.getInput('destroy') === 'true';
+    if (!githubToken) {
+        core.setFailed('GITHUB_TOKEN is not available.');
+        return;
+    }
     if (!create && !update && !destroy) {
         core.setFailed('Please provide at least one action type to perform. Either create, update, or destroy.');
         return;
     }
     // Ensure only one of create, update, or destroy is true
-    const trueCount = [create, update, destroy].filter((value) => value).length;
+    const trueCount = [create, update, destroy].filter(Boolean).length;
     if (trueCount !== 1) {
         core.setFailed('Exactly one of "create", "update", or "destroy" must be true.');
         return;
@@ -34610,6 +34615,7 @@ const getInputs = () => {
     return {
         actionType,
         cosmoApiKey,
+        githubToken,
         namespace,
         featureFlags,
         subgraphs,
@@ -34653,18 +34659,13 @@ exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
-const inputs_1 = __nccwpck_require__(7063);
+const inputs_js_1 = __nccwpck_require__(7063);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 async function run() {
     try {
-        const token = process.env.GITHUB_TOKEN;
-        if (!token) {
-            core.setFailed('GITHUB_TOKEN is not available.');
-            return;
-        }
         const context = github.context;
         const pullRequest = context.payload.pull_request;
         if (!pullRequest) {
@@ -34672,27 +34673,31 @@ async function run() {
             return;
         }
         const prNumber = pullRequest.number;
-        const inputs = (0, inputs_1.getInputs)();
+        const inputs = (0, inputs_js_1.getInputs)();
         if (!inputs) {
             return;
         }
         setUpWgc(inputs.cosmoApiKey);
         switch (inputs.actionType) {
-            case 'create':
+            case 'create': {
                 await create({ inputs, prNumber });
                 break;
-            case 'update':
+            }
+            case 'update': {
                 await update({ inputs, prNumber });
                 break;
-            case 'destroy':
+            }
+            case 'destroy': {
                 await destroy({ inputs, prNumber });
                 break;
+            }
         }
     }
     catch (error) {
         // Fail the workflow run if an error occurs
-        if (error instanceof Error)
+        if (error instanceof Error) {
             core.setFailed(error.message);
+        }
     }
 }
 /**
@@ -36950,9 +36955,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 /**
  * The entrypoint for the action.
  */
-const main_1 = __nccwpck_require__(399);
+const main_js_1 = __nccwpck_require__(399);
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-(0, main_1.run)();
+(0, main_js_1.run)();
 
 })();
 

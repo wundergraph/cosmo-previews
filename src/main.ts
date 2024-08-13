@@ -9,12 +9,6 @@ import { Inputs, getInputs } from './inputs.js';
  */
 export async function run(): Promise<void> {
   try {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
-      core.setFailed('GITHUB_TOKEN is not available.');
-      return;
-    }
-
     const context = github.context;
 
     const pullRequest = context.payload.pull_request;

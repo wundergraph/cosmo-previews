@@ -28,6 +28,7 @@ export type ActionType = 'create' | 'update' | 'destroy';
 
 export type Inputs = {
   cosmoApiKey: string;
+  githubToken: string;
   actionType: ActionType;
   namespace: string;
   featureFlags: FeatureFlag[];
@@ -37,9 +38,15 @@ export type Inputs = {
 export const getInputs = (): Inputs | undefined => {
   const configPath = core.getInput('config_path') || '.github/cosmo.yaml';
   const cosmoApiKey = core.getInput('cosmo_api_key', { required: true });
+  const githubToken = core.getInput('github_token', { required: true });
   const create = core.getInput('create') === 'true';
   const update = core.getInput('update') === 'true';
   const destroy = core.getInput('destroy') === 'true';
+
+  if (!githubToken) {
+    core.setFailed('GITHUB_TOKEN is not available.');
+    return;
+  }
 
   if (!create && !update && !destroy) {
     core.setFailed('Please provide at least one action type to perform. Either create, update, or destroy.');
@@ -89,6 +96,7 @@ export const getInputs = (): Inputs | undefined => {
   return {
     actionType,
     cosmoApiKey,
+    githubToken,
     namespace,
     featureFlags,
     subgraphs,
