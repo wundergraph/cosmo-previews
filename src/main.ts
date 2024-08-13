@@ -65,16 +65,16 @@ function setUpWgc(apiKey: string) {
 
 const create = async ({ inputs, prNumber }: { inputs: Inputs; prNumber: number }): Promise<void> => {
   // Create the resources
-  let featureSubgraphsString = '';
+  const featureSubgraphs = [];
   for (const subgraph of inputs.subgraphs) {
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
     await exec.exec(command);
-    featureSubgraphsString += `${featureSubgraphName},`;
+    featureSubgraphs.push(featureSubgraphName);
     core.info(`Feature subgraph ${featureSubgraphName} using ${subgraph.name} as base subgraph is created.`);
   }
   for (const featureFlag of inputs.featureFlags) {
-    const command = `wgc feature-flag create ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphsString} --enabled`;
+    const command = `wgc feature-flag create ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
     await exec.exec(command);
     core.info(`Feature flag ${featureFlag.name} is created.`);
   }
@@ -82,16 +82,16 @@ const create = async ({ inputs, prNumber }: { inputs: Inputs; prNumber: number }
 
 const update = async ({ inputs, prNumber }: { inputs: Inputs; prNumber: number }): Promise<void> => {
   // Update the resources
-  let featureSubgraphsString = '';
+  const featureSubgraphs = [];
   for (const subgraph of inputs.subgraphs) {
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
     await exec.exec(command);
-    featureSubgraphsString += `${featureSubgraphName},`;
+    featureSubgraphs.push(featureSubgraphName);
     core.info(`Feature subgraph ${featureSubgraphName} using ${subgraph.name} as base subgraph is updated.`);
   }
   for (const featureFlag of inputs.featureFlags) {
-    const command = `wgc feature-flag update ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphsString}`;
+    const command = `wgc feature-flag update ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
     await exec.exec(command);
     core.info(`Feature flag ${featureFlag.name} is updated.`);
   }
