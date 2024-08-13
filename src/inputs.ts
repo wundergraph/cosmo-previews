@@ -63,7 +63,6 @@ export const getInputs = (): Inputs | undefined => {
   const actionType = create ? 'create' : update ? 'update' : 'destroy';
 
   const inputFile = resolve(process.cwd(), configPath);
-  const inputFileLocation = dirname(inputFile);
 
   if (!existsSync(inputFile)) {
     core.setFailed(`The input file '${inputFile}' does not exist. Please check the path.`);
@@ -88,7 +87,7 @@ export const getInputs = (): Inputs | undefined => {
   const subgraphs = config.subgraphs.map((subgraph) => {
     return {
       name: subgraph.name,
-      schemaPath: resolve(inputFileLocation, subgraph.schema_path),
+      schemaPath: resolve(process.cwd(), subgraph.schema_path),
       routingUrl: subgraph.routing_url,
     };
   });
