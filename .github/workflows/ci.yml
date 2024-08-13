@@ -1,0 +1,56 @@
+# feature-flags-preview.yaml
+name: Cosmo Previews
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'subgraphs/employees/schema.graphql'
+      - 'subgraphs/family/schema.graphql'
+      - 'subgraphs/products/schema.graphql'
+      - 'subgraphs/hobbies/schema.graphql'
+    types: [synchronize, closed, opened, reopened]
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.action == 'opened' || github.event.pull_request.action == 'reopened'
+    steps:
+      # 1. Create & Publish feature subgraph based on cosmo.yaml
+      # 2. Create a new feature flag
+      - uses: wundergraph/feature-flags@main
+        id: ff
+        with:
+          config_path: .github/cosmo.yaml
+          create: true # Create the feature flag + subgraphs from cosmo.yaml
+          cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+      - run: |
+          echo "Feature flag has been created. You can now provision the subgraph service."
+
+  # run the job to deploy all the changed subgraphs here.
+
+  update:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'synchronize'
+    steps:
+      - uses: wundergraph/feature-flags@main
+        with:
+          config_path: .github/cosmo.yaml
+          update: true # Only update the feature subgraphs from cosmo.yaml
+          cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+      - run: |
+          echo "Feature subgraph has been updated. You can now update the subgraph service."
+
+  destroy:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.action == 'closed'
+    steps:
+      - uses: wundergraph/feature-flags@main
+        id: ff
+        with:
+          config_path: .github/cosmo.yaml
+          destroy: true # Only destroy the feature flag + subgraphs from cosmo.yaml
+          cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
+      - run: |
+          echo "Feature flag and the feature subgraphs have been destroyed. You can now unprovision the subgraph services."
+
