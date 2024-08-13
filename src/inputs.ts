@@ -62,6 +62,8 @@ export const getInputs = (): Inputs | undefined => {
 
   const actionType = create ? 'create' : update ? 'update' : 'destroy';
 
+  core.info(`CWD: ${process.cwd()}`);
+
   const inputFile = resolve(process.cwd(), configPath);
 
   if (!existsSync(inputFile)) {
