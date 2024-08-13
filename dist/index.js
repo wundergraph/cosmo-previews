@@ -34702,13 +34702,14 @@ async function run() {
 /**
  * Exports the API key as an environment variable.
  */
-async function setUpWgc(apiKey) {
-    core.info('Installing wgc@latest globally...');
-    await exec.exec('npm install -g wgc');
-    // Adding npm global bin to PATH
-    const npmGlobalBin = await exec.getExecOutput('npm bin -g');
-    core.addPath(npmGlobalBin.stdout.trim());
+function setUpWgc(apiKey) {
+    // core.info('Installing wgc@latest globally...');
+    // await exec.exec('npm install -g wgc');
+    // // Adding npm global bin to PATH
+    // const npmGlobalBin = await exec.getExecOutput('npm bin -g');
+    // core.addPath(npmGlobalBin.stdout.trim());
     core.exportVariable('COSMO_API_KEY', apiKey);
+    core.info('Environment variable COSMO_API_KEY is set.');
 }
 const create = async ({ inputs, prNumber }) => {
     // Create the resources

@@ -30,9 +30,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
-      - name: Install Dependencies
-        id: npm-ci
-        run: npm ci
+      - name: Install wgc
+        run: npm i -g wgc@latest
 
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
@@ -63,9 +62,8 @@ jobs:
           node-version: 20.10.0
           cache: npm
 
-      - name: Install Dependencies
-        id: npm-ci
-        run: npm ci
+      - name: Install wgc
+        run: npm i -g wgc@latest
 
       - uses: ./
         with:
@@ -91,9 +89,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
-      - name: Install Dependencies
-        id: npm-ci
-        run: npm ci
+      - name: Install wgc
+        run: npm i -g wgc@latest
 
       - uses: ./
         id: ff

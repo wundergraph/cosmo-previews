@@ -51,15 +51,16 @@ export async function run(): Promise<void> {
 /**
  * Exports the API key as an environment variable.
  */
-async function setUpWgc(apiKey: string): Promise<void> {
-  core.info('Installing wgc@latest globally...');
-  await exec.exec('npm install -g wgc');
+function setUpWgc(apiKey: string) {
+  // core.info('Installing wgc@latest globally...');
+  // await exec.exec('npm install -g wgc');
 
-  // Adding npm global bin to PATH
-  const npmGlobalBin = await exec.getExecOutput('npm bin -g');
-  core.addPath(npmGlobalBin.stdout.trim());
+  // // Adding npm global bin to PATH
+  // const npmGlobalBin = await exec.getExecOutput('npm bin -g');
+  // core.addPath(npmGlobalBin.stdout.trim());
 
   core.exportVariable('COSMO_API_KEY', apiKey);
+  core.info('Environment variable COSMO_API_KEY is set.');
 }
 
 const create = async ({ inputs, prNumber }: { inputs: Inputs; prNumber: number }): Promise<void> => {
