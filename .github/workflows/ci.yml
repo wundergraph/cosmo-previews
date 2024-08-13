@@ -29,6 +29,11 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
+
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
       - uses: ./
@@ -55,8 +60,12 @@ jobs:
         id: setup-node
         uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: 20.10.0
           cache: npm
+
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
 
       - uses: ./
         with:
@@ -82,12 +91,16 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
+
       - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
           destroy: true # Only destroy the feature flag + subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
-          github_token: ${{ secrets. GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           echo "Feature flag and the feature subgraphs have been destroyed. You can now unprovision the subgraph services."
