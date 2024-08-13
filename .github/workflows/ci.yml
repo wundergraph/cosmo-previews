@@ -1,4 +1,3 @@
-# feature-flags-preview.yaml
 name: Cosmo Previews
 on:
   pull_request:
@@ -22,7 +21,7 @@ jobs:
     steps:
       # 1. Create & Publish feature subgraph based on cosmo.yaml
       # 2. Create a new feature flag
-      - uses: .github/actions/cosmo-previews
+      - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
@@ -37,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'synchronize'
     steps:
-      - uses: .github/actions/cosmo-previews
+      - uses: ./
         with:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
@@ -49,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
     steps:
-      - uses: .github/actions/cosmo-previews
+      - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
