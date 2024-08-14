@@ -27,7 +27,7 @@ export async function run(): Promise<void> {
       return;
     }
 
-    setUpWgc(inputs.cosmoApiKey);
+    exportApiKey(inputs.cosmoApiKey);
 
     const changedFiles = await getChangedFilesFromGithubAPI({ githubToken: inputs.githubToken });
     const changedGraphQLFiles = getFilteredChangedFiles({
@@ -43,6 +43,7 @@ export async function run(): Promise<void> {
         }).length > 0;
       if (isCosmoConfigChanged) {
         core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
+        return;
       }
     }
 
@@ -71,14 +72,7 @@ export async function run(): Promise<void> {
 /**
  * Exports the API key as an environment variable.
  */
-function setUpWgc(apiKey: string) {
-  // core.info('Installing wgc@latest globally...');
-  // await exec.exec('npm install -g wgc');
-
-  // // Adding npm global bin to PATH
-  // const npmGlobalBin = await exec.getExecOutput('npm bin -g');
-  // core.addPath(npmGlobalBin.stdout.trim());
-
+function exportApiKey(apiKey: string) {
   core.exportVariable('COSMO_API_KEY', apiKey);
   core.info('Environment variable COSMO_API_KEY is set.');
 }
@@ -109,7 +103,8 @@ const create = async ({
     return;
   }
   for (const featureFlag of inputs.featureFlags) {
-    const command = `wgc feature-flag create ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
+    const featureFlagName = `${featureFlag.name}-${prNumber}`;
+    const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
     await exec.exec(command);
   }
 };
@@ -140,7 +135,8 @@ const update = async ({
     return;
   }
   for (const featureFlag of inputs.featureFlags) {
-    const command = `wgc feature-flag update ${featureFlag.name} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
+    const featureFlagName = `${featureFlag.name}-${prNumber}`;
+    const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
     await exec.exec(command);
   }
 };
@@ -156,7 +152,8 @@ const destroy = async ({
 }): Promise<void> => {
   // Destroy the resources
   for (const featureFlag of inputs.featureFlags) {
-    const command = `wgc feature-flag delete ${featureFlag.name} -n ${inputs.namespace} -f`;
+    const featureFlagName = `${featureFlag.name}-${prNumber}`;
+    const command = `wgc feature-flag delete ${featureFlagName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
   }
   for (const changedFile of changedGraphQLFiles) {
