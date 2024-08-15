@@ -40488,15 +40488,15 @@ async function run() {
         }
         switch (inputs.actionType) {
             case 'create': {
-                await create({ inputs, prNumber, changedGraphQLFiles });
+                await create({ inputs, prNumber, changedGraphQLFiles, context });
                 break;
             }
             case 'update': {
-                await update({ inputs, prNumber, changedGraphQLFiles });
+                await update({ inputs, prNumber, changedGraphQLFiles, context });
                 break;
             }
             case 'destroy': {
-                await destroy({ inputs, prNumber, changedGraphQLFiles });
+                await destroy({ inputs, prNumber, changedGraphQLFiles, context });
                 break;
             }
         }
@@ -40515,7 +40515,7 @@ function exportApiKey(apiKey) {
     core.exportVariable('COSMO_API_KEY', apiKey);
     core.info('Environment variable COSMO_API_KEY is set.');
 }
-const create = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
+const create = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     // Create the resources
     const featureSubgraphs = [];
     for (const changedFile of changedGraphQLFiles) {
@@ -40537,8 +40537,23 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
         const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
         await exec.exec(command);
     }
+    const octokit = github.getOctokit(inputs.githubToken);
+    // Generate Markdown table
+    const tableHeader = '| Feature Flag Name | Feature Subgraphs |\n| --- | --- |\n';
+    const tableBody = inputs.featureFlags.map((featureFlag) => {
+        const featureFlagName = `${featureFlag.name}-${prNumber}`;
+        return `| ${featureFlagName} | ${featureSubgraphs.join(', ')} |`;
+    });
+    const markdownTable = `${tableHeader}${tableBody}`;
+    // Post the Markdown table as a comment on the PR
+    await octokit.rest.issues.createComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: prNumber,
+        body: `### Feature flags and feature subgraphs created:\n${markdownTable} \n The above feature flags are deployed, pass the feature flag name in the header(X-Feature-Flag) while making a request.  `,
+    });
 };
-const update = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
+const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     // Update the resources
     const featureSubgraphs = [];
     for (const changedFile of changedGraphQLFiles) {
@@ -40561,7 +40576,7 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
         await exec.exec(command);
     }
 };
-const destroy = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
+const destroy = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     // Destroy the resources
     for (const featureFlag of inputs.featureFlags) {
         const featureFlagName = `${featureFlag.name}-${prNumber}`;

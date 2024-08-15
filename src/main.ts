@@ -4,6 +4,7 @@ import * as exec from '@actions/exec';
 import * as github from '@actions/github';
 import mm from 'micromatch';
 import type { RestEndpointMethodTypes } from '@octokit/rest';
+import { Context } from '@actions/github/lib/context.js';
 import { Inputs, getInputs } from './inputs.js';
 
 /**
@@ -49,15 +50,15 @@ export async function run(): Promise<void> {
 
     switch (inputs.actionType) {
       case 'create': {
-        await create({ inputs, prNumber, changedGraphQLFiles });
+        await create({ inputs, prNumber, changedGraphQLFiles, context });
         break;
       }
       case 'update': {
-        await update({ inputs, prNumber, changedGraphQLFiles });
+        await update({ inputs, prNumber, changedGraphQLFiles, context });
         break;
       }
       case 'destroy': {
-        await destroy({ inputs, prNumber, changedGraphQLFiles });
+        await destroy({ inputs, prNumber, changedGraphQLFiles, context });
         break;
       }
     }
@@ -81,13 +82,15 @@ const create = async ({
   inputs,
   prNumber,
   changedGraphQLFiles,
+  context,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
+  context: Context;
 }): Promise<void> => {
   // Create the resources
-  const featureSubgraphs = [];
+  const featureSubgraphs: string[] = [];
   for (const changedFile of changedGraphQLFiles) {
     const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
@@ -107,16 +110,35 @@ const create = async ({
     const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
     await exec.exec(command);
   }
+  const octokit = github.getOctokit(inputs.githubToken);
+
+  // Generate Markdown table
+  const tableHeader = '| Feature Flag Name | Feature Subgraphs |\n| --- | --- |\n';
+  const tableBody = inputs.featureFlags.map((featureFlag) => {
+    const featureFlagName = `${featureFlag.name}-${prNumber}`;
+    return `| ${featureFlagName} | ${featureSubgraphs.join(', ')} |`;
+  });
+  const markdownTable = `${tableHeader}${tableBody}`;
+
+  // Post the Markdown table as a comment on the PR
+  await octokit.rest.issues.createComment({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    issue_number: prNumber,
+    body: `### Feature flags and feature subgraphs created:\n${markdownTable} \n The above feature flags are deployed, pass the feature flag name in the header(X-Feature-Flag) while making a request.  `,
+  });
 };
 
 const update = async ({
   inputs,
   prNumber,
   changedGraphQLFiles,
+  context,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
+  context: Context;
 }): Promise<void> => {
   // Update the resources
   const featureSubgraphs = [];
@@ -145,10 +167,12 @@ const destroy = async ({
   inputs,
   prNumber,
   changedGraphQLFiles,
+  context,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
+  context: Context;
 }): Promise<void> => {
   // Destroy the resources
   for (const featureFlag of inputs.featureFlags) {
