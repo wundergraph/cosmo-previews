@@ -125,7 +125,8 @@ const create = async ({
     owner: context.repo.owner,
     repo: context.repo.repo,
     issue_number: prNumber,
-    body: `### Feature flags and feature subgraphs created:\n${markdownTable} \n The above feature flags are deployed, pass the feature flag name in the header(X-Feature-Flag) while making a request.  `,
+    body: `### Feature flags and feature subgraphs created:\n${markdownTable} \n \n
+    #### The above feature flags are deployed, pass the feature flag name in the header(X-Feature-Flag) while making a request.`,
   });
 };
 
