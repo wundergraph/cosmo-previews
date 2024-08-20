@@ -40440,6 +40440,7 @@ const getInputs = () => {
         namespace,
         featureFlags,
         subgraphs,
+        configPath,
     };
 };
 
@@ -40575,8 +40576,8 @@ const normalizeSeparators = (p) => {
         // Convert slashes on Windows
         p = p.replace(/\//g, '\\');
         // Remove redundant slashes
-        const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
-        p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading \\ for UNC
+        const isUnc = /^\\\\+[^\\]/.test(p);
+        p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\');
     }
     else {
         // Remove redundant slashes on Linux/macOS
@@ -40636,6 +40637,34 @@ const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, chang
     const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
     return removedGraphQLFiles;
 };
+const hasCosmoConfigChangedInLastCommit = async ({ githubToken, prNumber, }) => {
+    const octokit = github.getOctokit(githubToken);
+    // Get the list of commits in the pull request
+    const commits = await octokit.rest.pulls.listCommits({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: prNumber,
+    });
+    // Get the last commit
+    const lastCommit = commits.data.at(-1);
+    if (!lastCommit) {
+        return false;
+    }
+    const lastCommitSha = lastCommit.sha;
+    // Get the list of files in the last commit
+    const commitFiles = await octokit.rest.repos.getCommit({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        ref: lastCommitSha,
+    });
+    if (!commitFiles.data.files) {
+        return false;
+    }
+    // Filter out the files that were removed
+    const modifiedFiles = commitFiles.data.files?.filter((file) => file.status === 'modified');
+    const modifiedFilePaths = modifiedFiles.map((file) => file.filename);
+    return modifiedFilePaths.includes('.github/cosmo.yaml');
+};
 
 ;// CONCATENATED MODULE: ./src/main.ts
 
@@ -40674,18 +40703,17 @@ async function run() {
             filePatterns: ['**/*.graphql', '**/*.gql', '**/*.graphqls'],
         });
         if (inputs.actionType === 'update') {
-            const isCosmoConfigChanged = getFilteredChangedFiles({
-                allDiffFiles: changedFiles,
-                filePatterns: ['cosmo.yaml'],
-            }).length > 0;
-            console.log('isCosmoConfigChanged', isCosmoConfigChanged, changedFiles);
+            const isCosmoConfigChanged = await hasCosmoConfigChangedInLastCommit({
+                githubToken: inputs.githubToken,
+                prNumber,
+            });
             if (isCosmoConfigChanged) {
                 const octokit = github.getOctokit(inputs.githubToken);
                 await octokit.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: prNumber,
-                    body: `### ❌ The Cosmo config file is changed. Please close and reopen the pr.`,
+                    body: `### ❌ The Cosmo configuration file has been modified. Please close and reopen the pull request. Failing to do so may cause the feature flag to function improperly.`,
                 });
                 core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
                 return;
