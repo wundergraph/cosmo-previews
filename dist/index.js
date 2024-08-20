@@ -40678,6 +40678,7 @@ async function run() {
                 allDiffFiles: changedFiles,
                 filePatterns: ['cosmo.yaml'],
             }).length > 0;
+            console.log('isCosmoConfigChanged', isCosmoConfigChanged, changedFiles);
             if (isCosmoConfigChanged) {
                 const octokit = github.getOctokit(inputs.githubToken);
                 await octokit.rest.issues.createComment({
