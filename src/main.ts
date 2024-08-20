@@ -51,6 +51,13 @@ export async function run(): Promise<void> {
           filePatterns: ['cosmo.yaml'],
         }).length > 0;
       if (isCosmoConfigChanged) {
+        const octokit = github.getOctokit(inputs.githubToken);
+        await octokit.rest.issues.createComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number: prNumber,
+          body: `### ❌ The Cosmo config file is changed. Please close and reopen the pr.`,
+        });
         core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
         return;
       }
@@ -138,6 +145,7 @@ const create = async ({
   const featureFlagErrorOutputs: {
     [key: string]: SubgraphCommandJsonOutput;
   } = {};
+
   for (const changedFile of changedGraphQLFiles) {
     const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
@@ -214,20 +222,6 @@ const update = async ({
   const featureFlagErrorOutputs: {
     [key: string]: SubgraphCommandJsonOutput;
   } = {};
-  for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
-    if (!subgraph) {
-      continue;
-    }
-    const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-    const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
-    await exec.exec(command);
-    featureSubgraphs.push(featureSubgraphName);
-  }
-  if (featureSubgraphs.length === 0) {
-    core.info('No changes found in subgraphs to update feature subgraphs.');
-    return;
-  }
 
   const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
     githubToken: inputs.githubToken,
@@ -244,6 +238,22 @@ const update = async ({
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
+  }
+
+  for (const changedFile of changedGraphQLFiles) {
+    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
+    if (!subgraph) {
+      continue;
+    }
+    const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+    const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
+    await exec.exec(command);
+    featureSubgraphs.push(featureSubgraphName);
+  }
+
+  if (featureSubgraphs.length === 0) {
+    core.info('No changes found in subgraphs to update feature subgraphs.');
+    return;
   }
 
   for (const featureFlag of inputs.featureFlags) {

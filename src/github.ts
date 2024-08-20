@@ -164,7 +164,5 @@ export const getRemovedGraphQLFilesInLastCommit = async ({
   // happens when a file is removed in the last commit, or when the changes are reverted.
   const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
 
-  console.log('Removed files:', modifiedGraphQLFiles, removedGraphQLFiles);
-
   return removedGraphQLFiles;
 };

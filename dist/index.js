@@ -40458,13 +40458,13 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: prNumber,
-            body: `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`,
+            body: `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request. Refer [docs](https://cosmo-docs.wundergraph.com/tutorial/gradual-and-experimental-feature-rollout-with-feature-flags#using-cosmo-router-to-serve-the-feature-flag-to-clients) for more information.`,
         });
     }
     else {
         let body = '';
         if (deployedFeatureFlags.length > 0) {
-            body = `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
+            body = `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
         }
         const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
         const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
@@ -40472,23 +40472,31 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
             if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
                 const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
                 const compositionError = compositionErrors.find((error) => error.featureFlag === name);
-                return compositionError
-                    ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
-                    : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
+                if (compositionError) {
+                    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`;
+                }
+                else {
+                    const federatedGraphNames = [...new Set(compositionErrors.map((error) => error.federatedGraphName))];
+                    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
+                }
             }
             else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
                 const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
                 const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
-                return deploymentError
-                    ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
-                    : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
+                if (deploymentError) {
+                    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`;
+                }
+                else {
+                    const federatedGraphNames = [...new Set(deploymentErrors.map((error) => error.federatedGraphName))];
+                    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
+                }
             }
             else {
                 return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
             }
         });
         const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
-        body += `\n ### The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
+        body += `\n ### ❌ The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
         await octokit.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -40626,7 +40634,6 @@ const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, chang
     // find the file changes which exist in the last commit, but not in the current PR
     // happens when a file is removed in the last commit, or when the changes are reverted.
     const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
-    console.log('Removed files:', modifiedGraphQLFiles, removedGraphQLFiles);
     return removedGraphQLFiles;
 };
 
@@ -40672,6 +40679,13 @@ async function run() {
                 filePatterns: ['cosmo.yaml'],
             }).length > 0;
             if (isCosmoConfigChanged) {
+                const octokit = github.getOctokit(inputs.githubToken);
+                await octokit.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    body: `### ❌ The Cosmo config file is changed. Please close and reopen the pr.`,
+                });
                 core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
                 return;
             }
@@ -40803,20 +40817,6 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
     const featureSubgraphs = [];
     const deployedFeatureFlags = [];
     const featureFlagErrorOutputs = {};
-    for (const changedFile of changedGraphQLFiles) {
-        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
-        if (!subgraph) {
-            continue;
-        }
-        const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
-        await exec.exec(command);
-        featureSubgraphs.push(featureSubgraphName);
-    }
-    if (featureSubgraphs.length === 0) {
-        core.info('No changes found in subgraphs to update feature subgraphs.');
-        return;
-    }
     const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
         githubToken: inputs.githubToken,
         prNumber,
@@ -40831,6 +40831,20 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
         const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
+    }
+    for (const changedFile of changedGraphQLFiles) {
+        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
+        if (!subgraph) {
+            continue;
+        }
+        const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
+        await exec.exec(command);
+        featureSubgraphs.push(featureSubgraphName);
+    }
+    if (featureSubgraphs.length === 0) {
+        core.info('No changes found in subgraphs to update feature subgraphs.');
+        return;
     }
     for (const featureFlag of inputs.featureFlags) {
         const featureFlagName = `${featureFlag.name}-${prNumber}`;

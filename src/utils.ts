@@ -37,12 +37,12 @@ export const addComment = async ({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: prNumber,
-      body: `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`,
+      body: `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request. Refer [docs](https://cosmo-docs.wundergraph.com/tutorial/gradual-and-experimental-feature-rollout-with-feature-flags#using-cosmo-router-to-serve-the-feature-flag-to-clients) for more information.`,
     });
   } else {
     let body = '';
     if (deployedFeatureFlags.length > 0) {
-      body = `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
+      body = `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
     }
     const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
     const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
@@ -50,21 +50,27 @@ export const addComment = async ({
       if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
         const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
         const compositionError = compositionErrors.find((error) => error.featureFlag === name);
-        return compositionError
-          ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
-          : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
+        if (compositionError) {
+          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`;
+        } else {
+          const federatedGraphNames = [...new Set(compositionErrors.map((error) => error.federatedGraphName))];
+          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
+        }
       } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
         const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
         const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
-        return deploymentError
-          ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
-          : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
+        if (deploymentError) {
+          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`;
+        } else {
+          const federatedGraphNames = [...new Set(deploymentErrors.map((error) => error.federatedGraphName))];
+          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
+        }
       } else {
         return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
       }
     });
     const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
-    body += `\n ### The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
+    body += `\n ### ❌ The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
 
     await octokit.rest.issues.createComment({
       owner: context.repo.owner,
