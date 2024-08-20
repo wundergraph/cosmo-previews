@@ -1,4 +1,4 @@
-version: '0.0.1'
+version: '0.0.2'
 namespace: 'default'
 feature_flags:
   - name: 'my-feature-flag-1'
