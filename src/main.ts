@@ -13,7 +13,7 @@ import {
   getFilteredChangedFiles,
   getRemovedGraphQLFilesInLastCommit,
   hasCosmoConfigChangedInLastCommit,
-} from './github.js';
+} from './githubFiles.js';
 
 /**
  * The main function for the action.
