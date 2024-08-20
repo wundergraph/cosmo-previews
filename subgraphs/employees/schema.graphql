@@ -119,6 +119,7 @@ type Country @key(fields: "key { name }", resolvable: false) {
 
 type CountryKey {
   name: String!
+  a: String
 }
 
 enum Mood {
