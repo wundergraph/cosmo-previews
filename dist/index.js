@@ -40446,7 +40446,63 @@ const getInputs = () => {
     };
 };
 
+;// CONCATENATED MODULE: ./src/utils.ts
+
+const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, featureSubgraphs, featureFlagErrorOutputs, context, }) => {
+    const octokit = github.getOctokit(githubToken);
+    // Generate Markdown table
+    const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
+    const tableBody = deployedFeatureFlags.map((name) => {
+        return `| ${name} | ${featureSubgraphs.join(', ')} |`;
+    });
+    const markdownTable = `${tableHeader}${tableBody}`;
+    if (Object.keys(featureFlagErrorOutputs).length === 0) {
+        await octokit.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`,
+        });
+    }
+    else {
+        let body = '';
+        if (deployedFeatureFlags.length > 0) {
+            body = `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
+        }
+        const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
+        const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
+        const failedFFTableBody = failedFeatureFlags.map((name) => {
+            if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
+                const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
+                const compositionError = compositionErrors.find((error) => error.featureFlag === name);
+                return compositionError
+                    ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message} |`
+                    : `| ${name} | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
+            }
+            else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
+                const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
+                const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
+                return deploymentError
+                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`
+                    : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+            }
+            else {
+                return `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+            }
+        });
+        const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
+        body += `\n ### The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
+        await octokit.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body,
+        });
+    }
+};
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -40565,60 +40621,20 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
             }
         }
     }
-    const octokit = github.getOctokit(inputs.githubToken);
-    // Generate Markdown table
-    const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
-    const tableBody = deployedFeatureFlags.map((name) => {
-        return `| ${name} | ${featureSubgraphs.join(', ')} |`;
+    await addComment({
+        githubToken: inputs.githubToken,
+        prNumber,
+        deployedFeatureFlags,
+        featureSubgraphs,
+        featureFlagErrorOutputs,
+        context,
     });
-    const markdownTable = `${tableHeader}${tableBody}`;
-    if (Object.keys(featureFlagErrorOutputs).length === 0) {
-        await octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: prNumber,
-            body: `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`,
-        });
-    }
-    else {
-        let body = '';
-        if (deployedFeatureFlags.length > 0) {
-            body = `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
-        }
-        const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
-        const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
-        const failedFFTableBody = failedFeatureFlags.map((name) => {
-            if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
-                const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
-                const compositionError = compositionErrors.find((error) => error.featureFlag === name);
-                return compositionError
-                    ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message} |`
-                    : `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
-            }
-            else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
-                const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
-                const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
-                return deploymentError
-                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`
-                    : `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message} |`;
-            }
-            else {
-                return `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message} |`;
-            }
-        });
-        const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
-        body += `\n ### The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
-        await octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: prNumber,
-            body,
-        });
-    }
 };
 const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     // Update the resources
     const featureSubgraphs = [];
+    const deployedFeatureFlags = [];
+    const featureFlagErrorOutputs = {};
     for (const changedFile of changedGraphQLFiles) {
         const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), changedFile) === subgraph.schemaPath);
         if (!subgraph) {
@@ -40635,9 +40651,43 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     }
     for (const featureFlag of inputs.featureFlags) {
         const featureFlagName = `${featureFlag.name}-${prNumber}`;
-        const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')}`;
-        await exec.exec(command);
+        const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --json`;
+        let output = '';
+        let error = '';
+        const options = {
+            listeners: {
+                stdout: (data) => {
+                    output += data.toString();
+                },
+                stderr: (data) => {
+                    error += data.toString();
+                },
+            },
+        };
+        await exec.exec(command, [], options);
+        if (error) {
+            const errorJsonOutput = JSON.parse(error);
+            featureFlagErrorOutputs[featureFlagName] = errorJsonOutput;
+            continue;
+        }
+        if (output) {
+            const jsonOutput = JSON.parse(output);
+            if (jsonOutput.status === 'success') {
+                deployedFeatureFlags.push(featureFlagName);
+            }
+            else {
+                featureFlagErrorOutputs[featureFlagName] = jsonOutput;
+            }
+        }
     }
+    await addComment({
+        githubToken: inputs.githubToken,
+        prNumber,
+        deployedFeatureFlags,
+        featureSubgraphs,
+        featureFlagErrorOutputs,
+        context,
+    });
 };
 const destroy = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     // Destroy the resources
