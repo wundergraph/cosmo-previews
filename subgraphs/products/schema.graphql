@@ -84,6 +84,7 @@ type Employee @key(fields: "id") {
   id: Int!
   products: [ProductName!]!
   productCount: Int!
+  a: String
   notes: String @override(from: "employees")
 }
 
