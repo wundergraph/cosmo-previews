@@ -47,13 +47,13 @@ export const addComment = async ({
         const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
         const compositionError = compositionErrors.find((error) => error.featureFlag === name);
         return compositionError
-          ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message} |`
+          ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message.replace('\n', '<br>')} |`
           : `| ${name} | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
       } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
         const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
         const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
         return deploymentError
-          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message} |`
+          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message.replace('\n', '<br>')} |`
           : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
       } else {
         return `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
