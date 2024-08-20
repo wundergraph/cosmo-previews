@@ -3,6 +3,7 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
 import mm from 'micromatch';
+import type { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/core/types/types.d.ts';
 import type { RestEndpointMethodTypes } from '@octokit/rest';
 import { Context } from '@actions/github/lib/context.js';
 import { Inputs, getInputs } from './inputs.js';
@@ -91,6 +92,10 @@ const create = async ({
 }): Promise<void> => {
   // Create the resources
   const featureSubgraphs: string[] = [];
+  const deployedFeatureFlags: string[] = [];
+  const featureFlagErrorOutputs: {
+    [key: string]: SubgraphCommandJsonOutput;
+  } = {};
   for (const changedFile of changedGraphQLFiles) {
     const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
     if (!subgraph) {
@@ -107,26 +112,80 @@ const create = async ({
   }
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
-    const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled`;
-    await exec.exec(command);
+    const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled --json`;
+    let output = '';
+    let error = '';
+    const options = {
+      listeners: {
+        stdout: (data: Buffer) => {
+          output += data.toString();
+        },
+        stderr: (data: Buffer) => {
+          error += data.toString();
+        },
+      },
+    };
+    await exec.exec(command, [], options);
+    if (error) {
+      const errorJsonOutput: SubgraphCommandJsonOutput = JSON.parse(error);
+      featureFlagErrorOutputs[featureFlagName] = errorJsonOutput;
+      continue;
+    }
+    if (output) {
+      const jsonOutput: SubgraphCommandJsonOutput = JSON.parse(output);
+      if (jsonOutput.status === 'success') {
+        deployedFeatureFlags.push(featureFlagName);
+      } else {
+        featureFlagErrorOutputs[featureFlagName] = jsonOutput;
+      }
+    }
   }
   const octokit = github.getOctokit(inputs.githubToken);
 
   // Generate Markdown table
-  const tableHeader = '| Feature Flag Name | Feature Subgraphs |\n| --- | --- |\n';
-  const tableBody = inputs.featureFlags.map((featureFlag) => {
-    const featureFlagName = `${featureFlag.name}-${prNumber}`;
-    return `| ${featureFlagName} | ${featureSubgraphs.join(', ')} |`;
+  const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
+  const tableBody = deployedFeatureFlags.map((name) => {
+    return `| ${name} | ${featureSubgraphs.join(', ')} |`;
   });
   const markdownTable = `${tableHeader}${tableBody}`;
 
-  // Post the Markdown table as a comment on the PR
-  await octokit.rest.issues.createComment({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    issue_number: prNumber,
-    body: `### Feature flags and feature subgraphs created:\n${markdownTable} \n #### The above feature flags are deployed, pass the feature flag name to the 'X-Feature-Flag' header while making a request.`,
-  });
+  if (Object.keys(featureFlagErrorOutputs).length === 0) {
+    await octokit.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: prNumber,
+      body: `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`,
+    });
+  } else {
+    let body = '';
+    if (deployedFeatureFlags.length > 0) {
+      body = `### The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
+    }
+    const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
+    const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
+    const failedFFTableBody = failedFeatureFlags.map((name) => {
+      if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
+        const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
+        const compositionError = compositionErrors.find((error) => error.featureFlag === name);
+        return `| ${name} | ${compositionError.federatedGraphName || '-'} | ${compositionError.message || featureFlagErrorOutputs[name].message} |`;
+      } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
+        const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
+        const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
+        return `| ${name} | ${deploymentError.federatedGraphName || '-'} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`;
+      } else {
+        return `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message} |`;
+      }
+    });
+    const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
+    body += `\n ### The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
+
+    await octokit.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: prNumber,
+      body,
+    });
+  }
 };
 
 const update = async ({

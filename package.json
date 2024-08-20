@@ -62,7 +62,8 @@
     "@octokit/rest": "^21.0.1",
     "js-yaml": "^4.1.0",
     "micromatch": "^4.0.7",
-    "pathe": "^1.1.2"
+    "pathe": "^1.1.2",
+    "wgc": "^0.60.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
