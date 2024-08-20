@@ -33,6 +33,7 @@ export type Inputs = {
   namespace: string;
   featureFlags: FeatureFlag[];
   subgraphs: Subgraph[];
+  configPath: string;
 };
 
 export const getInputs = (): Inputs | undefined => {
@@ -99,5 +100,6 @@ export const getInputs = (): Inputs | undefined => {
     namespace,
     featureFlags,
     subgraphs,
+    configPath,
   };
 };

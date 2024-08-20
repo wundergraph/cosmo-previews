@@ -79,8 +79,8 @@ export const normalizeSeparators = (p: string): string => {
     p = p.replace(/\//g, '\\');
 
     // Remove redundant slashes
-    const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
-    p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading \\ for UNC
+    const isUnc = /^\\\\+[^\\]/.test(p);
+    p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\');
   } else {
     // Remove redundant slashes on Linux/macOS
     p = p.replace(/\/\/+/g, '/');
@@ -165,4 +165,44 @@ export const getRemovedGraphQLFilesInLastCommit = async ({
   const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
 
   return removedGraphQLFiles;
+};
+
+export const hasCosmoConfigChangedInLastCommit = async ({
+  githubToken,
+  prNumber,
+}: {
+  githubToken: string;
+  prNumber: number;
+}): Promise<boolean> => {
+  const octokit = github.getOctokit(githubToken);
+
+  // Get the list of commits in the pull request
+  const commits = await octokit.rest.pulls.listCommits({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    pull_number: prNumber,
+  });
+
+  // Get the last commit
+  const lastCommit = commits.data.at(-1);
+  if (!lastCommit) {
+    return false;
+  }
+  const lastCommitSha = lastCommit.sha;
+
+  // Get the list of files in the last commit
+  const commitFiles = await octokit.rest.repos.getCommit({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    ref: lastCommitSha,
+  });
+  if (!commitFiles.data.files) {
+    return false;
+  }
+
+  // Filter out the files that were removed
+  const modifiedFiles = commitFiles.data.files?.filter((file) => file.status === 'modified');
+  const modifiedFilePaths = modifiedFiles.map((file) => file.filename);
+
+  return modifiedFilePaths.includes('.github/cosmo.yaml');
 };

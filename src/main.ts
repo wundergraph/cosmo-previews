@@ -8,7 +8,12 @@ import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/cor
 import { Context } from '@actions/github/lib/context.js';
 import { Inputs, getInputs } from './inputs.js';
 import { addComment } from './utils.js';
-import { getChangedFilesFromGithubAPI, getFilteredChangedFiles, getRemovedGraphQLFilesInLastCommit } from './github.js';
+import {
+  getChangedFilesFromGithubAPI,
+  getFilteredChangedFiles,
+  getRemovedGraphQLFilesInLastCommit,
+  hasCosmoConfigChangedInLastCommit,
+} from './githubFiles.js';
 
 /**
  * The main function for the action.
@@ -45,18 +50,18 @@ export async function run(): Promise<void> {
     });
 
     if (inputs.actionType === 'update') {
-      const isCosmoConfigChanged =
-        getFilteredChangedFiles({
-          allDiffFiles: changedFiles,
-          filePatterns: ['cosmo.yaml'],
-        }).length > 0;
+      const isCosmoConfigChanged = await hasCosmoConfigChangedInLastCommit({
+        githubToken: inputs.githubToken,
+        prNumber,
+      });
+
       if (isCosmoConfigChanged) {
         const octokit = github.getOctokit(inputs.githubToken);
         await octokit.rest.issues.createComment({
           owner: context.repo.owner,
           repo: context.repo.repo,
           issue_number: prNumber,
-          body: `### ❌ The Cosmo config file is changed. Please close and reopen the pr.`,
+          body: `❌  The Cosmo configuration file has been modified. Please close and reopen the pull request. Failing to do so may cause the feature flag to function improperly.`,
         });
         core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
         return;
