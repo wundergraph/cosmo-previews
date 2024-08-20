@@ -40473,14 +40473,14 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
                 const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
                 const compositionError = compositionErrors.find((error) => error.featureFlag === name);
                 return compositionError
-                    ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message.replace('\n', '<br>')} |`
+                    ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
                     : `| ${name} | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
             }
             else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
                 const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
                 const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
                 return deploymentError
-                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message.replace('\n', '<br>')} |`
+                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
                     : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
             }
             else {
@@ -40593,7 +40593,7 @@ const getFilteredChangedFiles = ({ allDiffFiles, filePatterns, }) => {
     }
     return changedFiles;
 };
-const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, }) => {
+const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, changedGraphQLFilesInPr, }) => {
     const octokit = github.getOctokit(githubToken);
     // Step 1: Get the list of commits in the pull request
     const commits = await octokit.rest.pulls.listCommits({
@@ -40616,17 +40616,17 @@ const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, }) =>
     if (!commitFiles.data.files) {
         return [];
     }
-    console.log(lastCommitSha);
-    console.log(commitFiles);
-    console.log(commitFiles.data.files);
     // Filter out the files that were removed
-    const removedFiles = commitFiles.data.files?.filter((file) => file.status === 'removed');
-    const removedFilePaths = removedFiles.map((file) => file.filename);
-    const removedGraphQLFiles = micromatch_default()(removedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
+    const modifiedFiles = commitFiles.data.files?.filter((file) => file.status === 'modified');
+    const modifiedFilePaths = modifiedFiles.map((file) => file.filename);
+    const modifiedGraphQLFiles = micromatch_default()(modifiedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
         dot: true,
         noext: true,
     }).map((element) => normalizeSeparators(element));
-    console.log('Removed files:', removedFilePaths, removedGraphQLFiles);
+    // find the file changes which exist in the last commit, but not in the current PR
+    // happens when a file is removed in the last commit, or when the changes are reverted.
+    const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
+    console.log('Removed files:', modifiedGraphQLFiles, removedGraphQLFiles);
     return removedGraphQLFiles;
 };
 
@@ -40781,6 +40781,7 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
     const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
         githubToken: inputs.githubToken,
         prNumber,
+        changedGraphQLFilesInPr: changedGraphQLFiles,
     });
     // delete feature subgraphs which were removed in the last commit
     for (const removedFile of removedGraphQLFiles) {

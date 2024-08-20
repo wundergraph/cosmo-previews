@@ -188,6 +188,7 @@ const update = async ({
   const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
     githubToken: inputs.githubToken,
     prNumber,
+    changedGraphQLFilesInPr: changedGraphQLFiles,
   });
 
   // delete feature subgraphs which were removed in the last commit

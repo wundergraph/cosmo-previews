@@ -119,9 +119,11 @@ export const getFilteredChangedFiles = ({
 export const getRemovedGraphQLFilesInLastCommit = async ({
   githubToken,
   prNumber,
+  changedGraphQLFilesInPr,
 }: {
   githubToken: string;
   prNumber: number;
+  changedGraphQLFilesInPr: string[];
 }) => {
   const octokit = github.getOctokit(githubToken);
 
@@ -148,19 +150,21 @@ export const getRemovedGraphQLFilesInLastCommit = async ({
   if (!commitFiles.data.files) {
     return [];
   }
-  console.log(lastCommitSha);
-  console.log(commitFiles);
-  console.log(commitFiles.data.files);
 
   // Filter out the files that were removed
-  const removedFiles = commitFiles.data.files?.filter((file) => file.status === 'removed');
-  const removedFilePaths = removedFiles.map((file) => file.filename);
+  const modifiedFiles = commitFiles.data.files?.filter((file) => file.status === 'modified');
+  const modifiedFilePaths = modifiedFiles.map((file) => file.filename);
 
-  const removedGraphQLFiles: string[] = mm(removedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
+  const modifiedGraphQLFiles: string[] = mm(modifiedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
     dot: true,
     noext: true,
   }).map((element) => normalizeSeparators(element));
-  console.log('Removed files:', removedFilePaths, removedGraphQLFiles);
+
+  // find the file changes which exist in the last commit, but not in the current PR
+  // happens when a file is removed in the last commit, or when the changes are reverted.
+  const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
+
+  console.log('Removed files:', modifiedGraphQLFiles, removedGraphQLFiles);
 
   return removedGraphQLFiles;
 };
