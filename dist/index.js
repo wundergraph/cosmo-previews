@@ -40445,12 +40445,12 @@ const getInputs = () => {
 
 ;// CONCATENATED MODULE: ./src/utils.ts
 
-const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, featureSubgraphs, featureFlagErrorOutputs, context, }) => {
+const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, featureSubgraphs, featureFlagErrorOutputs, context, organizationSlug, namespace, }) => {
     const octokit = github.getOctokit(githubToken);
     // Generate Markdown table
     const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
     const tableBody = deployedFeatureFlags.map((name) => {
-        return `| ${name} | ${featureSubgraphs.join(', ')} |`;
+        return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${featureSubgraphs.join(', ')} |`;
     });
     const markdownTable = `${tableHeader}${tableBody}`;
     if (Object.keys(featureFlagErrorOutputs).length === 0) {
@@ -40473,18 +40473,18 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
                 const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
                 const compositionError = compositionErrors.find((error) => error.featureFlag === name);
                 return compositionError
-                    ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
-                    : `| ${name} | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
+                    ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
+                    : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
             }
             else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
                 const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
                 const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
                 return deploymentError
-                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
-                    : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+                    ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
+                    : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
             }
             else {
-                return `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+                return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
             }
         });
         const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
@@ -40656,6 +40656,11 @@ async function run() {
             return;
         }
         exportApiKey(inputs.cosmoApiKey);
+        const organizationDetails = await getOrganizationDetails();
+        if (!organizationDetails) {
+            core.setFailed('Failed to get organization details.');
+            return;
+        }
         const changedFiles = await getChangedFilesFromGithubAPI({ githubToken: inputs.githubToken });
         const changedGraphQLFiles = getFilteredChangedFiles({
             allDiffFiles: changedFiles,
@@ -40673,15 +40678,27 @@ async function run() {
         }
         switch (inputs.actionType) {
             case 'create': {
-                await create({ inputs, prNumber, changedGraphQLFiles, context });
+                await create({
+                    inputs,
+                    prNumber,
+                    changedGraphQLFiles,
+                    context,
+                    organizationSlug: organizationDetails.organizationSlug,
+                });
                 break;
             }
             case 'update': {
-                await update({ inputs, prNumber, changedGraphQLFiles, context });
+                await update({
+                    inputs,
+                    prNumber,
+                    changedGraphQLFiles,
+                    context,
+                    organizationSlug: organizationDetails.organizationSlug,
+                });
                 break;
             }
             case 'destroy': {
-                await destroy({ inputs, prNumber, changedGraphQLFiles, context });
+                await destroy({ inputs, prNumber, changedGraphQLFiles });
                 break;
             }
         }
@@ -40700,7 +40717,27 @@ function exportApiKey(apiKey) {
     core.exportVariable('COSMO_API_KEY', apiKey);
     core.info('Environment variable COSMO_API_KEY is set.');
 }
-const create = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
+const getOrganizationDetails = async () => {
+    let output = '';
+    let error = '';
+    const options = {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+            stderr: (data) => {
+                error += data.toString();
+            },
+        },
+    };
+    await exec.exec(`wgc whoami --json`, [], options);
+    if (error) {
+        core.setFailed(error);
+        return;
+    }
+    return JSON.parse(output);
+};
+const create = async ({ inputs, prNumber, changedGraphQLFiles, context, organizationSlug, }) => {
     // Create the resources
     const featureSubgraphs = [];
     const deployedFeatureFlags = [];
@@ -40757,9 +40794,11 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
         featureSubgraphs,
         featureFlagErrorOutputs,
         context,
+        organizationSlug,
+        namespace: inputs.namespace,
     });
 };
-const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
+const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organizationSlug, }) => {
     // Update the resources
     const featureSubgraphs = [];
     const deployedFeatureFlags = [];
@@ -40831,9 +40870,11 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
         featureSubgraphs,
         featureFlagErrorOutputs,
         context,
+        organizationSlug,
+        namespace: inputs.namespace,
     });
 };
-const destroy = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
+const destroy = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
     // Destroy the resources
     for (const featureFlag of inputs.featureFlags) {
         const featureFlagName = `${featureFlag.name}-${prNumber}`;

@@ -32,6 +32,11 @@ export async function run(): Promise<void> {
     }
 
     exportApiKey(inputs.cosmoApiKey);
+    const organizationDetails = await getOrganizationDetails();
+    if (!organizationDetails) {
+      core.setFailed('Failed to get organization details.');
+      return;
+    }
 
     const changedFiles = await getChangedFilesFromGithubAPI({ githubToken: inputs.githubToken });
     const changedGraphQLFiles = getFilteredChangedFiles({
@@ -53,15 +58,27 @@ export async function run(): Promise<void> {
 
     switch (inputs.actionType) {
       case 'create': {
-        await create({ inputs, prNumber, changedGraphQLFiles, context });
+        await create({
+          inputs,
+          prNumber,
+          changedGraphQLFiles,
+          context,
+          organizationSlug: organizationDetails.organizationSlug,
+        });
         break;
       }
       case 'update': {
-        await update({ inputs, prNumber, changedGraphQLFiles, context });
+        await update({
+          inputs,
+          prNumber,
+          changedGraphQLFiles,
+          context,
+          organizationSlug: organizationDetails.organizationSlug,
+        });
         break;
       }
       case 'destroy': {
-        await destroy({ inputs, prNumber, changedGraphQLFiles, context });
+        await destroy({ inputs, prNumber, changedGraphQLFiles });
         break;
       }
     }
@@ -81,16 +98,39 @@ function exportApiKey(apiKey: string) {
   core.info('Environment variable COSMO_API_KEY is set.');
 }
 
+const getOrganizationDetails = async (): Promise<WhoAmICommandJsonOutput | undefined> => {
+  let output = '';
+  let error = '';
+  const options = {
+    listeners: {
+      stdout: (data: Buffer) => {
+        output += data.toString();
+      },
+      stderr: (data: Buffer) => {
+        error += data.toString();
+      },
+    },
+  };
+  await exec.exec(`wgc whoami --json`, [], options);
+  if (error) {
+    core.setFailed(error);
+    return;
+  }
+  return JSON.parse(output);
+};
+
 const create = async ({
   inputs,
   prNumber,
   changedGraphQLFiles,
   context,
+  organizationSlug,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
   context: Context;
+  organizationSlug: string;
 }): Promise<void> => {
   // Create the resources
   const featureSubgraphs: string[] = [];
@@ -150,6 +190,8 @@ const create = async ({
     featureSubgraphs,
     featureFlagErrorOutputs,
     context,
+    organizationSlug,
+    namespace: inputs.namespace,
   });
 };
 
@@ -158,11 +200,13 @@ const update = async ({
   prNumber,
   changedGraphQLFiles,
   context,
+  organizationSlug,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
   context: Context;
+  organizationSlug: string;
 }): Promise<void> => {
   // Update the resources
   const featureSubgraphs: string[] = [];
@@ -243,6 +287,8 @@ const update = async ({
     featureSubgraphs,
     featureFlagErrorOutputs,
     context,
+    organizationSlug,
+    namespace: inputs.namespace,
   });
 };
 
@@ -250,12 +296,10 @@ const destroy = async ({
   inputs,
   prNumber,
   changedGraphQLFiles,
-  context,
 }: {
   inputs: Inputs;
   prNumber: number;
   changedGraphQLFiles: string[];
-  context: Context;
 }): Promise<void> => {
   // Destroy the resources
   for (const featureFlag of inputs.featureFlags) {

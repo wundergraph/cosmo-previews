@@ -9,6 +9,8 @@ export const addComment = async ({
   featureSubgraphs,
   featureFlagErrorOutputs,
   context,
+  organizationSlug,
+  namespace,
 }: {
   githubToken: string;
   prNumber: number;
@@ -18,13 +20,15 @@ export const addComment = async ({
     [key: string]: SubgraphCommandJsonOutput;
   };
   context: Context;
+  organizationSlug: string;
+  namespace: string;
 }) => {
   const octokit = github.getOctokit(githubToken);
 
   // Generate Markdown table
   const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
   const tableBody = deployedFeatureFlags.map((name) => {
-    return `| ${name} | ${featureSubgraphs.join(', ')} |`;
+    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${featureSubgraphs.join(', ')} |`;
   });
   const markdownTable = `${tableHeader}${tableBody}`;
 
@@ -47,16 +51,16 @@ export const addComment = async ({
         const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
         const compositionError = compositionErrors.find((error) => error.featureFlag === name);
         return compositionError
-          ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
-          : `| ${name} | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
+          ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`
+          : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
       } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
         const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
         const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
         return deploymentError
-          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
-          : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+          ? `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`
+          : `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
       } else {
-        return `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
+        return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
       }
     });
     const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
