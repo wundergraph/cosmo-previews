@@ -2,12 +2,13 @@ import { resolve } from 'node:path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
-import mm from 'micromatch';
+
 import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/core/types/types.js';
-import type { RestEndpointMethodTypes } from '@octokit/rest';
+
 import { Context } from '@actions/github/lib/context.js';
 import { Inputs, getInputs } from './inputs.js';
 import { addComment } from './utils.js';
+import { getChangedFilesFromGithubAPI, getFilteredChangedFiles, getRemovedGraphQLFilesInLastCommit } from './github.js';
 
 /**
  * The main function for the action.
@@ -183,6 +184,23 @@ const update = async ({
     core.info('No changes found in subgraphs to update feature subgraphs.');
     return;
   }
+
+  const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
+    githubToken: inputs.githubToken,
+    prNumber,
+  });
+
+  // delete feature subgraphs which were removed in the last commit
+  for (const removedFile of removedGraphQLFiles) {
+    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), removedFile) === subgraph.schemaPath);
+    if (!subgraph) {
+      continue;
+    }
+    const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+    const command = `wgc feature-subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
+    await exec.exec(command);
+  }
+
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
     const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --json`;
@@ -253,119 +271,4 @@ const destroy = async ({
     const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
   }
-};
-
-export enum ChangeTypeEnum {
-  Added = 'A',
-  Copied = 'C',
-  Deleted = 'D',
-  Modified = 'M',
-  Renamed = 'R',
-  TypeChanged = 'T',
-  Unmerged = 'U',
-  Unknown = 'X',
-}
-
-export type ChangedFiles = {
-  [key in ChangeTypeEnum]: string[];
-};
-
-export const getChangedFilesFromGithubAPI = async ({ githubToken }: { githubToken: string }): Promise<ChangedFiles> => {
-  const octokit = github.getOctokit(githubToken);
-  const changedFiles: ChangedFiles = {
-    [ChangeTypeEnum.Added]: [],
-    [ChangeTypeEnum.Copied]: [],
-    [ChangeTypeEnum.Deleted]: [],
-    [ChangeTypeEnum.Modified]: [],
-    [ChangeTypeEnum.Renamed]: [],
-    [ChangeTypeEnum.TypeChanged]: [],
-    [ChangeTypeEnum.Unmerged]: [],
-    [ChangeTypeEnum.Unknown]: [],
-  };
-
-  core.info('Getting changed files from GitHub API...');
-
-  const options = octokit.rest.pulls.listFiles.endpoint.merge({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    pull_number: github.context.payload.pull_request?.number,
-    per_page: 100,
-  });
-
-  const paginatedResponse =
-    await octokit.paginate<RestEndpointMethodTypes['pulls']['listFiles']['response']['data'][0]>(options);
-
-  core.info(`Found ${paginatedResponse.length} changed files from GitHub API`);
-  const statusMap: Record<string, ChangeTypeEnum> = {
-    added: ChangeTypeEnum.Added,
-    removed: ChangeTypeEnum.Deleted,
-    modified: ChangeTypeEnum.Modified,
-    renamed: ChangeTypeEnum.Renamed,
-    copied: ChangeTypeEnum.Copied,
-    changed: ChangeTypeEnum.TypeChanged,
-    unchanged: ChangeTypeEnum.Unmerged,
-  };
-
-  for await (const item of paginatedResponse) {
-    const changeType: ChangeTypeEnum = statusMap[item.status] || ChangeTypeEnum.Unknown;
-
-    if (changeType === ChangeTypeEnum.Renamed) {
-      changedFiles[ChangeTypeEnum.Deleted].push(item.filename);
-      changedFiles[ChangeTypeEnum.Added].push(item.filename);
-    } else {
-      changedFiles[changeType].push(item.filename);
-    }
-  }
-
-  return changedFiles;
-};
-
-export const isWindows = (): boolean => {
-  return process.platform === 'win32';
-};
-
-export const normalizeSeparators = (p: string): string => {
-  // Windows
-  if (isWindows()) {
-    // Convert slashes on Windows
-    p = p.replace(/\//g, '\\');
-
-    // Remove redundant slashes
-    const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
-    p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading \\ for UNC
-  } else {
-    // Remove redundant slashes on Linux/macOS
-    p = p.replace(/\/\/+/g, '/');
-  }
-
-  return p;
-};
-
-export const getFilteredChangedFiles = ({
-  allDiffFiles,
-  filePatterns,
-}: {
-  allDiffFiles: ChangedFiles;
-  filePatterns: string[];
-}): string[] => {
-  const changedFiles: string[] = [];
-  const hasFilePatterns = filePatterns.length > 0;
-  const isWin = isWindows();
-
-  for (const changeType of Object.keys(allDiffFiles)) {
-    const files = allDiffFiles[changeType as ChangeTypeEnum];
-    if (hasFilePatterns) {
-      changedFiles.push(
-        ...mm(files, filePatterns, {
-          dot: true,
-          windows: isWin,
-          noext: true,
-        }).map((element) => normalizeSeparators(element)),
-      );
-    } else {
-      changedFiles.push(...files);
-    }
-  }
-
-  return changedFiles;
 };

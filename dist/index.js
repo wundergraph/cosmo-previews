@@ -36304,9 +36304,6 @@ var core = __nccwpck_require__(2186);
 var exec = __nccwpck_require__(1514);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
-// EXTERNAL MODULE: ./node_modules/micromatch/index.js
-var micromatch = __nccwpck_require__(6228);
-var micromatch_default = /*#__PURE__*/__nccwpck_require__.n(micromatch);
 ;// CONCATENATED MODULE: external "node:fs"
 const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
 ;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
@@ -40501,6 +40498,135 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
     }
 };
 
+// EXTERNAL MODULE: ./node_modules/micromatch/index.js
+var micromatch = __nccwpck_require__(6228);
+var micromatch_default = /*#__PURE__*/__nccwpck_require__.n(micromatch);
+;// CONCATENATED MODULE: ./src/github.ts
+
+
+
+var ChangeTypeEnum;
+(function (ChangeTypeEnum) {
+    ChangeTypeEnum["Added"] = "A";
+    ChangeTypeEnum["Copied"] = "C";
+    ChangeTypeEnum["Deleted"] = "D";
+    ChangeTypeEnum["Modified"] = "M";
+    ChangeTypeEnum["Renamed"] = "R";
+    ChangeTypeEnum["TypeChanged"] = "T";
+    ChangeTypeEnum["Unmerged"] = "U";
+    ChangeTypeEnum["Unknown"] = "X";
+})(ChangeTypeEnum || (ChangeTypeEnum = {}));
+const getChangedFilesFromGithubAPI = async ({ githubToken }) => {
+    const octokit = github.getOctokit(githubToken);
+    const changedFiles = {
+        [ChangeTypeEnum.Added]: [],
+        [ChangeTypeEnum.Copied]: [],
+        [ChangeTypeEnum.Deleted]: [],
+        [ChangeTypeEnum.Modified]: [],
+        [ChangeTypeEnum.Renamed]: [],
+        [ChangeTypeEnum.TypeChanged]: [],
+        [ChangeTypeEnum.Unmerged]: [],
+        [ChangeTypeEnum.Unknown]: [],
+    };
+    core.info('Getting changed files from GitHub API...');
+    const options = octokit.rest.pulls.listFiles.endpoint.merge({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: github.context.payload.pull_request?.number,
+        per_page: 100,
+    });
+    const paginatedResponse = await octokit.paginate(options);
+    core.info(`Found ${paginatedResponse.length} changed files from GitHub API`);
+    const statusMap = {
+        added: ChangeTypeEnum.Added,
+        removed: ChangeTypeEnum.Deleted,
+        modified: ChangeTypeEnum.Modified,
+        renamed: ChangeTypeEnum.Renamed,
+        copied: ChangeTypeEnum.Copied,
+        changed: ChangeTypeEnum.TypeChanged,
+        unchanged: ChangeTypeEnum.Unmerged,
+    };
+    for await (const item of paginatedResponse) {
+        const changeType = statusMap[item.status] || ChangeTypeEnum.Unknown;
+        if (changeType === ChangeTypeEnum.Renamed) {
+            changedFiles[ChangeTypeEnum.Deleted].push(item.filename);
+            changedFiles[ChangeTypeEnum.Added].push(item.filename);
+        }
+        else {
+            changedFiles[changeType].push(item.filename);
+        }
+    }
+    return changedFiles;
+};
+const isWindows = () => {
+    return process.platform === 'win32';
+};
+const normalizeSeparators = (p) => {
+    // Windows
+    if (isWindows()) {
+        // Convert slashes on Windows
+        p = p.replace(/\//g, '\\');
+        // Remove redundant slashes
+        const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
+        p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading \\ for UNC
+    }
+    else {
+        // Remove redundant slashes on Linux/macOS
+        p = p.replace(/\/\/+/g, '/');
+    }
+    return p;
+};
+const getFilteredChangedFiles = ({ allDiffFiles, filePatterns, }) => {
+    const changedFiles = [];
+    const hasFilePatterns = filePatterns.length > 0;
+    for (const changeType of Object.keys(allDiffFiles)) {
+        const files = allDiffFiles[changeType];
+        if (hasFilePatterns) {
+            changedFiles.push(...micromatch_default()(files, filePatterns, {
+                dot: true,
+                noext: true,
+            }).map((element) => normalizeSeparators(element)));
+        }
+        else {
+            changedFiles.push(...files);
+        }
+    }
+    return changedFiles;
+};
+const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, }) => {
+    const octokit = github.getOctokit(githubToken);
+    // Step 1: Get the list of commits in the pull request
+    const commits = await octokit.rest.pulls.listCommits({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: prNumber,
+    });
+    // Get the last commit
+    const lastCommit = commits.data.at(-1);
+    if (!lastCommit) {
+        return [];
+    }
+    const lastCommitSha = lastCommit.sha;
+    // Get the list of files in the last commit
+    const commitFiles = await octokit.rest.repos.getCommit({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        ref: lastCommitSha,
+    });
+    if (!commitFiles.data.files) {
+        return [];
+    }
+    // Filter out the files that were removed
+    const removedFiles = commitFiles.data.files?.filter((file) => file.status === 'removed');
+    const removedFilePaths = removedFiles.map((file) => file.filename);
+    const removedGraphQLFiles = micromatch_default()(removedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
+        dot: true,
+        noext: true,
+    }).map((element) => normalizeSeparators(element));
+    console.log('Removed files:', removedFilePaths, removedGraphQLFiles);
+    return removedGraphQLFiles;
+};
+
 ;// CONCATENATED MODULE: ./src/main.ts
 
 
@@ -40649,6 +40775,20 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
         core.info('No changes found in subgraphs to update feature subgraphs.');
         return;
     }
+    const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
+        githubToken: inputs.githubToken,
+        prNumber,
+    });
+    // delete feature subgraphs which were removed in the last commit
+    for (const removedFile of removedGraphQLFiles) {
+        const subgraph = inputs.subgraphs.find((subgraph) => (0,external_node_path_namespaceObject.resolve)(process.cwd(), removedFile) === subgraph.schemaPath);
+        if (!subgraph) {
+            continue;
+        }
+        const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+        const command = `wgc feature-subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
+        await exec.exec(command);
+    }
     for (const featureFlag of inputs.featureFlags) {
         const featureFlagName = `${featureFlag.name}-${prNumber}`;
         const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --json`;
@@ -40705,96 +40845,6 @@ const destroy = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
         const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
     }
-};
-var ChangeTypeEnum;
-(function (ChangeTypeEnum) {
-    ChangeTypeEnum["Added"] = "A";
-    ChangeTypeEnum["Copied"] = "C";
-    ChangeTypeEnum["Deleted"] = "D";
-    ChangeTypeEnum["Modified"] = "M";
-    ChangeTypeEnum["Renamed"] = "R";
-    ChangeTypeEnum["TypeChanged"] = "T";
-    ChangeTypeEnum["Unmerged"] = "U";
-    ChangeTypeEnum["Unknown"] = "X";
-})(ChangeTypeEnum || (ChangeTypeEnum = {}));
-const getChangedFilesFromGithubAPI = async ({ githubToken }) => {
-    const octokit = github.getOctokit(githubToken);
-    const changedFiles = {
-        [ChangeTypeEnum.Added]: [],
-        [ChangeTypeEnum.Copied]: [],
-        [ChangeTypeEnum.Deleted]: [],
-        [ChangeTypeEnum.Modified]: [],
-        [ChangeTypeEnum.Renamed]: [],
-        [ChangeTypeEnum.TypeChanged]: [],
-        [ChangeTypeEnum.Unmerged]: [],
-        [ChangeTypeEnum.Unknown]: [],
-    };
-    core.info('Getting changed files from GitHub API...');
-    const options = octokit.rest.pulls.listFiles.endpoint.merge({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: github.context.payload.pull_request?.number,
-        per_page: 100,
-    });
-    const paginatedResponse = await octokit.paginate(options);
-    core.info(`Found ${paginatedResponse.length} changed files from GitHub API`);
-    const statusMap = {
-        added: ChangeTypeEnum.Added,
-        removed: ChangeTypeEnum.Deleted,
-        modified: ChangeTypeEnum.Modified,
-        renamed: ChangeTypeEnum.Renamed,
-        copied: ChangeTypeEnum.Copied,
-        changed: ChangeTypeEnum.TypeChanged,
-        unchanged: ChangeTypeEnum.Unmerged,
-    };
-    for await (const item of paginatedResponse) {
-        const changeType = statusMap[item.status] || ChangeTypeEnum.Unknown;
-        if (changeType === ChangeTypeEnum.Renamed) {
-            changedFiles[ChangeTypeEnum.Deleted].push(item.filename);
-            changedFiles[ChangeTypeEnum.Added].push(item.filename);
-        }
-        else {
-            changedFiles[changeType].push(item.filename);
-        }
-    }
-    return changedFiles;
-};
-const isWindows = () => {
-    return process.platform === 'win32';
-};
-const normalizeSeparators = (p) => {
-    // Windows
-    if (isWindows()) {
-        // Convert slashes on Windows
-        p = p.replace(/\//g, '\\');
-        // Remove redundant slashes
-        const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
-        p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading \\ for UNC
-    }
-    else {
-        // Remove redundant slashes on Linux/macOS
-        p = p.replace(/\/\/+/g, '/');
-    }
-    return p;
-};
-const getFilteredChangedFiles = ({ allDiffFiles, filePatterns, }) => {
-    const changedFiles = [];
-    const hasFilePatterns = filePatterns.length > 0;
-    const isWin = isWindows();
-    for (const changeType of Object.keys(allDiffFiles)) {
-        const files = allDiffFiles[changeType];
-        if (hasFilePatterns) {
-            changedFiles.push(...micromatch_default()(files, filePatterns, {
-                dot: true,
-                windows: isWin,
-                noext: true,
-            }).map((element) => normalizeSeparators(element)));
-        }
-        else {
-            changedFiles.push(...files);
-        }
-    }
-    return changedFiles;
 };
 
 ;// CONCATENATED MODULE: ./src/index.ts
