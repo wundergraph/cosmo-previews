@@ -40790,7 +40790,7 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, }) => {
             continue;
         }
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-        const command = `wgc feature-subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
+        const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
     }
     for (const featureFlag of inputs.featureFlags) {

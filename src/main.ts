@@ -198,7 +198,7 @@ const update = async ({
       continue;
     }
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-    const command = `wgc feature-subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
+    const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
   }
 
