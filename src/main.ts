@@ -167,11 +167,15 @@ const create = async ({
       if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
         const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
         const compositionError = compositionErrors.find((error) => error.featureFlag === name);
-        return `| ${name} | ${compositionError.federatedGraphName || '-'} | ${compositionError.message || featureFlagErrorOutputs[name].message} |`;
+        return compositionError
+          ? `| ${name} | ${compositionError.federatedGraphName} | ${compositionError.message} |`
+          : `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page for more details. |`;
       } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
         const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
         const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
-        return `| ${name} | ${deploymentError.federatedGraphName || '-'} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`;
+        return deploymentError
+          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`
+          : `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message} |`;
       } else {
         return `| ${name} | ${'-'} | ${featureFlagErrorOutputs[name].message} |`;
       }
