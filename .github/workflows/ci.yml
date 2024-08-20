@@ -3,11 +3,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'subgraphs/employees/schema.graphql'
-      - 'subgraphs/family/schema.graphql'
-      - 'subgraphs/products/schema.graphql'
-      - 'subgraphs/hobbies/schema.graphql'
     types:
       - opened
       - reopened
