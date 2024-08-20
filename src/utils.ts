@@ -53,7 +53,7 @@ export const addComment = async ({
         const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
         const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
         return deploymentError
-          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`
+          ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message} |`
           : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
       } else {
         return `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;

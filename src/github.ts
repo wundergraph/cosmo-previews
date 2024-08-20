@@ -148,6 +148,9 @@ export const getRemovedGraphQLFilesInLastCommit = async ({
   if (!commitFiles.data.files) {
     return [];
   }
+  console.log(lastCommitSha);
+  console.log(commitFiles);
+  console.log(commitFiles.data.files);
 
   // Filter out the files that were removed
   const removedFiles = commitFiles.data.files?.filter((file) => file.status === 'removed');

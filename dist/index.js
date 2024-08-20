@@ -40480,7 +40480,7 @@ const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, feature
                 const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
                 const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
                 return deploymentError
-                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message || featureFlagErrorOutputs[name].message} |`
+                    ? `| ${name} | ${deploymentError.federatedGraphName} | ${deploymentError.message} |`
                     : `| ${name} | - | ${featureFlagErrorOutputs[name].message} |`;
             }
             else {
@@ -40616,6 +40616,9 @@ const getRemovedGraphQLFilesInLastCommit = async ({ githubToken, prNumber, }) =>
     if (!commitFiles.data.files) {
         return [];
     }
+    console.log(lastCommitSha);
+    console.log(commitFiles);
+    console.log(commitFiles.data.files);
     // Filter out the files that were removed
     const removedFiles = commitFiles.data.files?.filter((file) => file.status === 'removed');
     const removedFilePaths = removedFiles.map((file) => file.filename);
