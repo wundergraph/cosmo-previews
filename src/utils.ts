@@ -37,12 +37,12 @@ export const addComment = async ({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: prNumber,
-      body: `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request. Refer [docs](https://cosmo-docs.wundergraph.com/tutorial/gradual-and-experimental-feature-rollout-with-feature-flags#using-cosmo-router-to-serve-the-feature-flag-to-clients) for more information.`,
+      body: `### 🚀  The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request. Refer to the [documentation](https://cosmo-docs.wundergraph.com/tutorial/gradual-and-experimental-feature-rollout-with-feature-flags#using-cosmo-router-to-serve-the-feature-flag-to-clients) for more information.`,
     });
   } else {
     let body = '';
     if (deployedFeatureFlags.length > 0) {
-      body = `### 🚀 The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.`;
+      body = `### 🚀  The following feature flags have been deployed: \n${markdownTable} \n #### To query any of these feature flags, pass the feature flag name to the 'X-Feature-Flag' header when making a request.  Refer to the [documentation](https://cosmo-docs.wundergraph.com/tutorial/gradual-and-experimental-feature-rollout-with-feature-flags#using-cosmo-router-to-serve-the-feature-flag-to-clients) for more information.`;
     }
     const failedFeatureFlags = Object.keys(featureFlagErrorOutputs);
     const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
