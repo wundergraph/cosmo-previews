@@ -15,7 +15,6 @@ When developing new features, it's essential to test them in a staging environme
   - [Create](#create)
   - [Update](#update)
   - [Destroy](#destroy)
-- [License](#license)
 
 ## Usage
 
@@ -183,7 +182,3 @@ The `destroy` job is triggered when a pull request is closed. It performs the fo
 2. Sets up Node.js using the version specified in `.node-version`.
 3. Installs the latest version of the `wgc` CLI tool.
 4. Destroys all the feature flags and feature subgraphs created for the pull request.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE). Feel free to use, modify, and distribute this action as needed.
