@@ -1,11 +1,10 @@
 name: 'Cosmo Previews'
-description: 'This action helps to create a preview of your new subgraph changes.'
+description: 'Automate PR previews with Graph Feature Flags for seamless testing in a production-like environment.'
 author: 'WunderGraph Cosmo'
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: 'heart'
-  color: 'red'
+  icon: 'eye'
+  color: 'white'
 
 # Define your inputs here.
 inputs:
@@ -25,9 +24,6 @@ inputs:
     description: 'The API key to authenticate with Cosmo'
   github_token:
     description: 'The GitHub token to authenticate with GitHub'
-
-# # Define your outputs here.
-# outputs:
 
 runs:
   using: node20

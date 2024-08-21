@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import * as yaml from 'js-yaml';
-import { dirname, resolve } from 'pathe';
+import { resolve } from 'pathe';
 
 export type Config = {
   namespace: string;
