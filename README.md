@@ -179,6 +179,6 @@ The `update` job is triggered when a pull request is synchronized. It performs t
 The `destroy` job is triggered when a pull request is closed. It performs the following actions:
 
 1. Checks out the repository.
-2. Sets up Node.js using the version specified in `.node-version`.
+2. Sets up Node.js using the version specified.
 3. Installs the latest version of the `wgc` CLI tool.
 4. Destroys all the feature flags and feature subgraphs created for the pull request.
