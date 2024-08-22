@@ -37,8 +37,9 @@ jobs:
           create: true # Create the feature flag + subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
           github_token: ${{ secrets. GITHUB_TOKEN }}
+
       - run: |
-          echo "Feature flag has been created. You can now provision the subgraph service."
+          echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
 
   # run the job to deploy all the changed subgraphs here.
 
@@ -66,8 +67,10 @@ jobs:
           update: true # Only update the feature subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
           github_token: ${{ secrets. GITHUB_TOKEN }}
+          
       - run: |
-          echo "Feature subgraph has been updated. You can now update the subgraph service."
+          echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
+          echo "${{ steps.ff.outputs.feature_subgraphs_to_destroy }}"
 
   destroy:
     runs-on: ubuntu-latest
@@ -96,3 +99,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           echo "Feature flag and the feature subgraphs have been destroyed. You can now unprovision the subgraph services."
+      - run: |
+          echo "${{ steps.ff.outputs.feature_subgraphs_to_destroy }}"
