@@ -54,7 +54,7 @@ subgraphs:
 ```
 - The paths to schema files should be relative to the root of your repository.
 - Feature flag labels must match the federated graph for which the preview is created.
-- Make sure that the subgraphs mentioned in cosmo.yaml are a part of a federated graph.
+- Ensure that the subgraphs mentioned in cosmo.yaml are a part of a federated graph.
 
 2. Add the following GitHub Action workflow to your repository.
 
