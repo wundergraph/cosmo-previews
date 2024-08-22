@@ -25,6 +25,13 @@ inputs:
   github_token:
     description: 'The GitHub token to authenticate with GitHub'
 
+outputs:
+  feature_subgraphs_to_deploy:
+    description: 'The list of feature subgraphs to deploy'
+
+  feature_subgraphs_to_destroy:
+    description: 'The list of feature subgraphs to destroy'
+
 runs:
   using: node20
   main: dist/index.js

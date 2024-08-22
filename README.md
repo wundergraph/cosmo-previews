@@ -34,7 +34,7 @@ To use this action in your repository:
 
 1. Create a `.github/cosmo.yaml` file that defines the configuration for your feature subgraphs and feature flags.
 
-``` yaml 
+```yaml
 version: '0.0.1'
 namespace: '<your-namespace>'
 feature_flags:
@@ -52,6 +52,7 @@ subgraphs:
     schema_path: '<path-to-schema-2>'
     routing_url: '<routing-url-2>'
 ```
+
 - The paths to schema files should be relative to the root of your repository.
 - Feature flag labels must match the federated graph for which the preview is created.
 - Ensure that the subgraphs mentioned in cosmo.yaml are a part of a federated graph.

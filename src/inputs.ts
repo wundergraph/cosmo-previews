@@ -2,39 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import * as yaml from 'js-yaml';
 import { resolve } from 'pathe';
-
-export type Config = {
-  namespace: string;
-  feature_flags: FeatureFlag[];
-  subgraphs: {
-    name: string;
-    schema_path: string;
-    routing_url: string;
-  }[];
-};
-
-export type FeatureFlag = {
-  name: string;
-  labels: string[];
-};
-
-export type Subgraph = {
-  name: string;
-  schemaPath: string;
-  routingUrl: string;
-};
-
-export type ActionType = 'create' | 'update' | 'destroy';
-
-export type Inputs = {
-  cosmoApiKey: string;
-  githubToken: string;
-  actionType: ActionType;
-  namespace: string;
-  featureFlags: FeatureFlag[];
-  subgraphs: Subgraph[];
-  configPath: string;
-};
+import { Config, Inputs } from './types.js';
 
 export const getInputs = (): Inputs | undefined => {
   const configPath = core.getInput('config_path') || '.github/cosmo.yaml';

@@ -6,7 +6,7 @@ import * as github from '@actions/github';
 import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/core/types/types.js';
 
 import { Context } from '@actions/github/lib/context.js';
-import { Inputs, getInputs } from './inputs.js';
+import { getInputs } from './inputs.js';
 import { addComment } from './utils.js';
 import {
   getChangedFilesFromGithubAPI,
@@ -14,6 +14,7 @@ import {
   getRemovedGraphQLFilesInLastCommit,
   hasCosmoConfigChangedInLastCommit,
 } from './githubFiles.js';
+import { FeatureSubgraphsOutputConfig, Inputs } from './types.js';
 
 /**
  * The main function for the action.
@@ -145,11 +146,12 @@ const create = async ({
   organizationSlug: string;
 }): Promise<void> => {
   // Create the resources
-  const featureSubgraphs: string[] = [];
+  const featureSubgraphNames: string[] = [];
   const deployedFeatureFlags: string[] = [];
   const featureFlagErrorOutputs: {
     [key: string]: SubgraphCommandJsonOutput;
   } = {};
+  const featureSubgraphsToDeploy: FeatureSubgraphsOutputConfig[] = [];
 
   for (const changedFile of changedGraphQLFiles) {
     const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
@@ -159,15 +161,25 @@ const create = async ({
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
     await exec.exec(command);
-    featureSubgraphs.push(featureSubgraphName);
+    featureSubgraphNames.push(featureSubgraphName);
+    featureSubgraphsToDeploy.push({
+      featureSubgraphName,
+      schemaPath: subgraph.schemaPath,
+      routingUrl: subgraph.routingUrl,
+      baseSubgraphName: subgraph.name,
+    });
   }
-  if (featureSubgraphs.length === 0) {
+
+  core.setOutput('feature_subgraphs_to_deploy', featureSubgraphsToDeploy);
+
+  if (featureSubgraphNames.length === 0) {
     core.info('No subgraphs found to create feature subgraphs.');
     return;
   }
+
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
-    const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --enabled --json`;
+    const command = `wgc feature-flag create ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphNames.join(' ')} --enabled --json`;
     let output = '';
     let error = '';
     const options = {
@@ -200,7 +212,7 @@ const create = async ({
     githubToken: inputs.githubToken,
     prNumber,
     deployedFeatureFlags,
-    featureSubgraphs,
+    featureSubgraphs: featureSubgraphNames,
     featureFlagErrorOutputs,
     context,
     organizationSlug,
@@ -222,11 +234,13 @@ const update = async ({
   organizationSlug: string;
 }): Promise<void> => {
   // Update the resources
-  const featureSubgraphs: string[] = [];
+  const featureSubgraphNames: string[] = [];
   const deployedFeatureFlags: string[] = [];
   const featureFlagErrorOutputs: {
     [key: string]: SubgraphCommandJsonOutput;
   } = {};
+  const featureSubgraphsToDeploy: FeatureSubgraphsOutputConfig[] = [];
+  const featureSubgraphsToDestroy: FeatureSubgraphsOutputConfig[] = [];
 
   const removedGraphQLFiles = await getRemovedGraphQLFilesInLastCommit({
     githubToken: inputs.githubToken,
@@ -243,6 +257,12 @@ const update = async ({
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
+    featureSubgraphsToDestroy.push({
+      featureSubgraphName,
+      schemaPath: subgraph.schemaPath,
+      routingUrl: subgraph.routingUrl,
+      baseSubgraphName: subgraph.name,
+    });
   }
 
   for (const changedFile of changedGraphQLFiles) {
@@ -253,17 +273,26 @@ const update = async ({
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
     await exec.exec(command);
-    featureSubgraphs.push(featureSubgraphName);
+    featureSubgraphNames.push(featureSubgraphName);
+    featureSubgraphsToDeploy.push({
+      featureSubgraphName,
+      schemaPath: subgraph.schemaPath,
+      routingUrl: subgraph.routingUrl,
+      baseSubgraphName: subgraph.name,
+    });
   }
 
-  if (featureSubgraphs.length === 0) {
+  core.setOutput('feature_subgraphs_to_deploy', featureSubgraphsToDeploy);
+  core.setOutput('feature_subgraphs_to_destroy', featureSubgraphsToDestroy);
+
+  if (featureSubgraphNames.length === 0) {
     core.info('No changes found in subgraphs to update feature subgraphs.');
     return;
   }
 
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
-    const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphs.join(' ')} --json`;
+    const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphNames.join(' ')} --json`;
 
     let output = '';
     let error = '';
@@ -299,7 +328,7 @@ const update = async ({
     githubToken: inputs.githubToken,
     prNumber,
     deployedFeatureFlags,
-    featureSubgraphs,
+    featureSubgraphs: featureSubgraphNames,
     featureFlagErrorOutputs,
     context,
     organizationSlug,
@@ -316,6 +345,7 @@ const destroy = async ({
   prNumber: number;
   changedGraphQLFiles: string[];
 }): Promise<void> => {
+  const featureSubgraphsToDestroy: FeatureSubgraphsOutputConfig[] = [];
   // Destroy the resources
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
@@ -330,5 +360,12 @@ const destroy = async ({
     const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
     const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
     await exec.exec(command);
+    featureSubgraphsToDestroy.push({
+      featureSubgraphName,
+      schemaPath: subgraph.schemaPath,
+      routingUrl: subgraph.routingUrl,
+      baseSubgraphName: subgraph.name,
+    });
   }
+  core.setOutput('feature_subgraphs_to_destroy', featureSubgraphsToDestroy);
 };
