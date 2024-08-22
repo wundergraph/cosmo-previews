@@ -62,7 +62,7 @@ export async function run(): Promise<void> {
           owner: context.repo.owner,
           repo: context.repo.repo,
           issue_number: prNumber,
-          body: `❌  The Cosmo configuration file has been modified. Please close and reopen the pull request. Failing to do so may cause the feature flag to function improperly.`,
+          body: `❌  The Cosmo configuration file has been modified. Please close and reopen the pull request. Failing to do so may cause the feature flag to function improperly. Please make sure that the destroy job(triggered when the PR is closed) is completed before reopening the pull request.`,
         });
         core.setFailed('Cosmo config file is changed. Please close and reopen the pr.');
         return;

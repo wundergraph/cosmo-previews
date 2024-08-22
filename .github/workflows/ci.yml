@@ -67,7 +67,7 @@ jobs:
           update: true # Only update the feature subgraphs from cosmo.yaml
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
           github_token: ${{ secrets. GITHUB_TOKEN }}
-          
+
       - run: |
           echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
           echo "${{ steps.ff.outputs.feature_subgraphs_to_destroy }}"
