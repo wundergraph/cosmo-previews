@@ -194,4 +194,4 @@ The `destroy` job is triggered when a pull request is closed. It performs the fo
 
 ## Limitations
 
-1. The cosmo.yaml file should not be changed after the pull request is opened. If changes are to be made, the pull request should be closed and reopened.
+1. The cosmo.yaml file should not be changed after the pull request is opened. If changes are to be made, the pull request should be closed and reopened. Make sure that the destroy action is completed before reopening the pull request.
