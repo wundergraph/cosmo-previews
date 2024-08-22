@@ -292,7 +292,28 @@ const update = async ({
 
   for (const featureFlag of inputs.featureFlags) {
     const featureFlagName = `${featureFlag.name}-${prNumber}`;
-    const command = `wgc feature-flag update ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphNames.join(' ')} --json`;
+    let commandName = 'update';
+    const listCommand = `wgc feature-flag list -n ${inputs.namespace} --json`;
+    let listOutput = '';
+    const listOptions = {
+      listeners: {
+        stdout: (data: Buffer) => {
+          listOutput += data.toString();
+        },
+      },
+    };
+    // fetching all the feature flags in the namesapce to check if the feature flag exists or not
+    await exec.exec(listCommand, [], listOptions);
+
+    if (listOutput) {
+      const jsonOutput = JSON.parse(listOutput);
+      const featureFlagExists = jsonOutput.find((flag: { name: string }) => flag.name === featureFlagName);
+      if (!featureFlagExists) {
+        commandName = 'create';
+      }
+    }
+
+    const command = `wgc feature-flag ${commandName} ${featureFlagName} -n ${inputs.namespace} --label ${featureFlag.labels.join(' ')} --feature-subgraphs ${featureSubgraphNames.join(' ')} --json`;
 
     let output = '';
     let error = '';
