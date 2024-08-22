@@ -72,6 +72,8 @@ jobs:
           echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
           echo "${{ steps.ff.outputs.feature_subgraphs_to_destroy }}"
 
+  # run the job to deploy all the changed subgraphs here.
+
   destroy:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
