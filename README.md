@@ -187,6 +187,11 @@ The `destroy` job is triggered when a pull request is closed. It performs the fo
 3. Installs the latest version of the `wgc` CLI tool.
 4. Destroys all the feature flags and feature subgraphs created for the pull request.
 
+## Outputs
+
+- `feature_subgraphs_to_deploy`: A list of feature subgraphs to deploy. This output is provided in the create and update jobs.
+- `feature_subgraphs_to_destroy`: A list of feature subgraphs to destroy. This output is provided in the update and destroy jobs.
+
 ## Limitations
 
 1. The cosmo.yaml file should not be changed after the pull request is opened. If changes are to be made, the pull request should be closed and reopened.
