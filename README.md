@@ -54,6 +54,7 @@ subgraphs:
 ```
 
 - The paths to schema files should be relative to the root of your repository.
+- The `routing_url` can include the placeholder string '${PR_NUMBER}', which will be replaced with the actual PR number. This enables deployment of the subgraph to a unique URL for each pull request.
 - Feature flag labels must match the federated graph for which the preview is created.
 - Ensure that the subgraphs mentioned in cosmo.yaml are a part of a federated graph.
 

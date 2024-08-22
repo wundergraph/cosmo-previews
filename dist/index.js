@@ -40667,6 +40667,7 @@ const hasCosmoConfigChangedInLastCommit = async ({ githubToken, prNumber, }) => 
 };
 
 ;// CONCATENATED MODULE: ./src/main.ts
+/* eslint-disable no-template-curly-in-string */
 
 
 
@@ -40792,13 +40793,14 @@ const create = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
             continue;
         }
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
+        const routingURL = subgraph.routingUrl.replace('${PR_NUMBER}', prNumber.toString());
+        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${routingURL} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
         await exec.exec(command);
         featureSubgraphNames.push(featureSubgraphName);
         featureSubgraphsToDeploy.push({
             featureSubgraphName,
             schemaPath: subgraph.schemaPath,
-            routingUrl: subgraph.routingUrl,
+            routingUrl: routingURL,
             baseSubgraphName: subgraph.name,
         });
     }
@@ -40868,12 +40870,13 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
             continue;
         }
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+        const routingURL = subgraph.routingUrl.replace('${PR_NUMBER}', prNumber.toString());
         const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
         featureSubgraphsToDestroy.push({
             featureSubgraphName,
             schemaPath: subgraph.schemaPath,
-            routingUrl: subgraph.routingUrl,
+            routingUrl: routingURL,
             baseSubgraphName: subgraph.name,
         });
     }
@@ -40883,7 +40886,8 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
             continue;
         }
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
-        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${subgraph.routingUrl} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
+        const routingURL = subgraph.routingUrl.replace('${PR_NUMBER}', prNumber.toString());
+        const command = `wgc feature-subgraph publish ${featureSubgraphName} --subgraph ${subgraph.name} --routing-url ${routingURL} --schema ${subgraph.schemaPath} -n ${inputs.namespace}`;
         await exec.exec(command);
         featureSubgraphNames.push(featureSubgraphName);
         featureSubgraphsToDeploy.push({
@@ -40974,12 +40978,13 @@ const destroy = async ({ inputs, prNumber, changedGraphQLFiles, }) => {
             continue;
         }
         const featureSubgraphName = `${subgraph.name}-${inputs.namespace}-${prNumber}`;
+        const routingURL = subgraph.routingUrl.replace('${PR_NUMBER}', prNumber.toString());
         const command = `wgc subgraph delete ${featureSubgraphName} -n ${inputs.namespace} -f`;
         await exec.exec(command);
         featureSubgraphsToDestroy.push({
             featureSubgraphName,
             schemaPath: subgraph.schemaPath,
-            routingUrl: subgraph.routingUrl,
+            routingUrl: routingURL,
             baseSubgraphName: subgraph.name,
         });
     }
