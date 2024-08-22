@@ -25,7 +25,8 @@ Before using the Cosmo Previews GitHub Action, ensure that the following prerequ
 1. **Cosmo API Key**: You must have a valid API key from WunderGraph Cosmo, which should be stored as a secret in your GitHub repository under `COSMO_API_KEY`.
 2. **Configuration File**: Create a `cosmo.yaml` file in the `.github` directory of your repository. This file should define the configuration for your subgraphs and feature flags.
 3. **Subgraphs on Wundergraph Cosmo**: All subgraphs referenced in the cosmo.yaml file must be created and published on Wundergraph Cosmo. Ensure that these subgraphs are correctly configured.
-4. **GitHub Token**: The GitHub token is automatically provided by GitHub Actions, but ensure it is correctly referenced.
+4. **Subgraph Deployment**: The subgraphs that are modified in the PR must be deployed at the specified routing URLs(as mentioned in the cosmo.yaml file) in the CI environment for the preview to function correctly.
+5. **GitHub Token**: The GitHub token is automatically provided by GitHub Actions, but ensure it is correctly referenced.
 
 ### Setup
 
@@ -51,7 +52,9 @@ subgraphs:
     schema_path: '<path-to-schema-2>'
     routing_url: '<routing-url-2>'
 ```
-The paths to schema files should be relative to the root of your repository.
+- The paths to schema files should be relative to the root of your repository.
+- Feature flag labels must match the federated graph for which the preview is created.
+- Make sure that the subgraphs mentioned in cosmo.yaml are a part of a federated graph.
 
 2. Add the following GitHub Action workflow to your repository.
 
@@ -182,3 +185,7 @@ The `destroy` job is triggered when a pull request is closed. It performs the fo
 2. Sets up Node.js using the version specified.
 3. Installs the latest version of the `wgc` CLI tool.
 4. Destroys all the feature flags and feature subgraphs created for the pull request.
+
+## Limitations
+
+1. The cosmo.yaml file should not be changed after the pull request is opened. If changes are to be made, the pull request should be closed and reopened.
