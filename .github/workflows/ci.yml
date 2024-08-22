@@ -62,6 +62,7 @@ jobs:
         run: npm i -g wgc@latest
 
       - uses: ./
+        id: ff
         with:
           config_path: .github/cosmo.yaml
           update: true # Only update the feature subgraphs from cosmo.yaml
