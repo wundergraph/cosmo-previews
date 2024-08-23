@@ -1,9 +1,9 @@
 name: 'Cosmo Previews'
-description: 'Preview your subgraph changes for each pull request by using feature flags. Feature flags allow you to gradually release changes to a specific portion of your consumer traffic, instead of deploying them to all clients at once.'
+description: 'Preview your subgraph changes for each pull request by using feature flags. Feature flags allow you to gradually release changes to a specific portion of your consumer traffic.'
 author: 'WunderGraph Cosmo'
 
 branding:
-  icon: 'eye'
+  icon: 'git-pull-request'
   color: 'white'
 
 # Define your inputs here.
