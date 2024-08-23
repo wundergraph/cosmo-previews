@@ -1,5 +1,5 @@
 name: 'Cosmo Previews'
-description: 'Automate PR previews with Graph Feature Flags for seamless testing in a production-like environment.'
+description: 'Preview your subgraph changes for each pull request by using feature flags. Feature flags allow you to gradually release changes to a specific portion of your consumer traffic, instead of deploying them to all clients at once.'
 author: 'WunderGraph Cosmo'
 
 branding:
