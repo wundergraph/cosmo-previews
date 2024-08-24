@@ -1,5 +1,5 @@
 name: 'Cosmo Previews'
-description: 'Preview subgraph changes for each pull request with feature flags, a collection of subgraph replacements called feature subgraphs'
+description: 'Preview subgraph changes for each pull request using feature flags, a set of subgraph replacements called feature subgraphs.'
 author: 'WunderGraph Cosmo'
 
 branding:
