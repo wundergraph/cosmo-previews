@@ -1,4 +1,5 @@
 import * as github from '@actions/github';
+import * as core from '@actions/core';
 import { SubgraphCommandJsonOutput } from 'wgc/dist/core/types/types.js';
 import { Context } from '@actions/github/lib/context.js';
 
@@ -31,7 +32,10 @@ export const addComment = async ({
     issue_number: prNumber,
   });
 
+  core.error(JSON.stringify(comments.data));
+
   for (const comment of comments.data) {
+    core.info(JSON.stringify(comment));
     if (
       comment.body &&
       (comment.body.startsWith('### 🚀  The following feature flags have been deployed:') ||
