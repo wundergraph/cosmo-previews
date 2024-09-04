@@ -140,8 +140,6 @@ type Employee implements Identifiable @key(fields: "id") {
   isAvailable: Boolean! @external
   rootFieldThrowsError: String @goField(forceResolver: true)
   rootFieldErrorWrapper: ErrorWrapper @goField(forceResolver: true)
-  a: String
-  b: String
 }
 
 type ErrorWrapper {
