@@ -141,6 +141,7 @@ type Employee implements Identifiable @key(fields: "id") {
   rootFieldThrowsError: String @goField(forceResolver: true)
   rootFieldErrorWrapper: ErrorWrapper @goField(forceResolver: true)
   a: String
+  b: String
 }
 
 type ErrorWrapper {
