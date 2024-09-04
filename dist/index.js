@@ -40446,8 +40446,27 @@ const getInputs = () => {
 
 ;// CONCATENATED MODULE: ./src/utils.ts
 
+
 const addComment = async ({ githubToken, prNumber, deployedFeatureFlags, featureSubgraphs, featureFlagErrorOutputs, context, organizationSlug, namespace, }) => {
     const octokit = github.getOctokit(githubToken);
+    const comments = await octokit.rest.issues.listComments({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: prNumber,
+    });
+    core.error(JSON.stringify(comments.data));
+    for (const comment of comments.data) {
+        core.info(JSON.stringify(comment));
+        if (comment.body &&
+            (comment.body.startsWith('### 🚀  The following feature flags have been deployed:') ||
+                comment.body.startsWith('\n ### ❌ The following feature flags failed to deploy in these federated graphs:'))) {
+            await octokit.rest.issues.deleteComment({
+                comment_id: comment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+            });
+        }
+    }
     // Generate Markdown table
     const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
     const tableBody = deployedFeatureFlags.map((name) => {
@@ -40893,7 +40912,7 @@ const update = async ({ inputs, prNumber, changedGraphQLFiles, context, organiza
         featureSubgraphsToDeploy.push({
             featureSubgraphName,
             schemaPath: subgraph.schemaPath,
-            routingUrl: subgraph.routingUrl,
+            routingUrl: routingURL,
             baseSubgraphName: subgraph.name,
         });
     }
