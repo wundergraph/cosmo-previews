@@ -281,7 +281,7 @@ const update = async ({
     featureSubgraphsToDeploy.push({
       featureSubgraphName,
       schemaPath: subgraph.schemaPath,
-      routingUrl: subgraph.routingUrl,
+      routingUrl: routingURL,
       baseSubgraphName: subgraph.name,
     });
   }

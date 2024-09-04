@@ -25,6 +25,26 @@ export const addComment = async ({
 }) => {
   const octokit = github.getOctokit(githubToken);
 
+  const comments = await octokit.rest.issues.listComments({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    issue_number: prNumber,
+  });
+
+  for (const comment of comments.data) {
+    if (
+      comment.body &&
+      (comment.body.startsWith('### 🚀  The following feature flags have been deployed:') ||
+        comment.body.startsWith('\n ### ❌ The following feature flags failed to deploy in these federated graphs:'))
+    ) {
+      await octokit.rest.issues.deleteComment({
+        comment_id: comment.id,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+      });
+    }
+  }
+
   // Generate Markdown table
   const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
   const tableBody = deployedFeatureFlags.map((name) => {
