@@ -127,6 +127,7 @@ const getOrganizationDetails = async (): Promise<WhoAmICommandJsonOutput | undef
   };
   await exec.exec(`wgc auth whoami --json`, [], options);
   const data = JSON.parse(output);
+  console.log(data);
   if (data.status !== 'success') {
     core.setFailed(error);
     return;
