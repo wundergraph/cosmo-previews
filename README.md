@@ -85,7 +85,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.10.0
+          node-version: 20.18.3
           cache: npm
 
       - name: Install wgc
@@ -109,7 +109,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.10.0
+          node-version: 20.18.3
           cache: npm
 
       - name: Install wgc
@@ -133,7 +133,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.10.0
+          node-version: 20.18.3
           cache: npm
 
       - name: Install wgc
