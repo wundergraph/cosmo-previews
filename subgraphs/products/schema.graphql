@@ -84,7 +84,6 @@ type Employee @key(fields: "id") {
   id: Int!
   products: [ProductName!]!
   notes: String @override(from: "employees")
-  productsCount: Int!
 }
 
 union Products = Consultancy | Cosmo | Documentation
