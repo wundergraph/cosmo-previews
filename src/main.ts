@@ -126,11 +126,12 @@ const getOrganizationDetails = async (): Promise<WhoAmICommandJsonOutput | undef
     },
   };
   await exec.exec(`wgc auth whoami --json`, [], options);
-  if (error) {
+  const data = JSON.parse(output);
+  if (data.status !== 'success') {
     core.setFailed(error);
     return;
   }
-  return JSON.parse(output);
+  return data;
 };
 
 const create = async ({
