@@ -83,7 +83,7 @@ enum ProductName {
 type Employee @key(fields: "id") {
   id: Int!
   products: [ProductName!]!
-  notes: String @override(from: "employees")
+  notes: String @override(from: "employees1")
   productsCount: Int!
 }
 
