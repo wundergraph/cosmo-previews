@@ -3,9 +3,7 @@ import { resolve } from 'node:path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
-
-import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/core/types/types.js';
-
+import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/src/core/types/types.js';
 import { Context } from '@actions/github/lib/context.js';
 import { getInputs } from './inputs.js';
 import { addComment } from './utils.js';

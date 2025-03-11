@@ -1,5 +1,5 @@
 import * as github from '@actions/github';
-import { SubgraphCommandJsonOutput } from 'wgc/dist/core/types/types.js';
+import { SubgraphCommandJsonOutput } from 'wgc/dist/src/core/types/types.js';
 import { Context } from '@actions/github/lib/context.js';
 
 export const addComment = async ({
