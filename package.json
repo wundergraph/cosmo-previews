@@ -63,7 +63,7 @@
     "js-yaml": "^4.1.0",
     "micromatch": "^4.0.7",
     "pathe": "^1.1.2",
-    "wgc": "^0.60.0"
+    "wgc": "^0.75.6"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
