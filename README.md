@@ -80,12 +80,12 @@ jobs:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.18.3
+          node-version: 24.11.1
           cache: npm
 
       - name: Install wgc
@@ -104,12 +104,12 @@ jobs:
     if: github.event.action == 'synchronize'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.18.3
+          node-version: 24.11.1
           cache: npm
 
       - name: Install wgc
@@ -128,12 +128,12 @@ jobs:
     if: github.event.action == 'closed'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.18.3
+          node-version: 24.11.1
           cache: npm
 
       - name: Install wgc
