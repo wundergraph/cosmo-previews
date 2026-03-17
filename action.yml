@@ -10,19 +10,18 @@ inputs:
   config_path:
     description: 'The path to cosmo.yaml file'
     default: '.github/cosmo.yaml'
-  create:
-    description: 'Create the feature flag + subgraphs from cosmo.yaml'
-    default: false
-  update:
-    description: 'Only update the feature subgraphs from cosmo.yaml'
-    default: false
-  destroy:
-    description: 'Only destroy the feature flag + subgraphs from cosmo.yaml'
-    default: false
+  action:
+    description: 'The action to perform: preview | schema'
+    required: true
+  stage:
+    description: 'The stage to run. preview: create | update | delete. schema: check'
+    required: true
   cosmo_api_key:
     description: 'The API key to authenticate with Cosmo'
+    required: true
   github_token:
     description: 'The GitHub token to authenticate with GitHub'
+    required: true
 
 outputs:
   feature_subgraphs_to_deploy:

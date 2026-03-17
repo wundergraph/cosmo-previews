@@ -2,40 +2,28 @@ import { existsSync, readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import * as yaml from 'js-yaml';
 import { resolve } from 'pathe';
-import type { Config, Inputs } from './types';
+import { actionInputSchema, configSchema } from './schema';
+import type { Inputs } from './types';
 
 export const getInputs = (): Inputs | undefined => {
   const configPath = core.getInput('config_path') || '.github/cosmo.yaml';
   const cosmoApiKey = core.getInput('cosmo_api_key', { required: true });
   const githubToken = core.getInput('github_token', { required: true });
-  const create = core.getInput('create') === 'true';
-  const update = core.getInput('update') === 'true';
-  const destroy = core.getInput('destroy') === 'true';
+  const action = core.getInput('action', { required: true });
+  const stage = core.getInput('stage', { required: true });
 
   if (!githubToken) {
     core.setFailed('GITHUB_TOKEN is not available.');
     return;
   }
 
-  if (!create && !update && !destroy) {
-    core.setFailed(
-      'Please provide at least one action type to perform. Either create, update, or destroy.',
-    );
+  const actionResult = actionInputSchema.safeParse({ action, stage });
+  if (!actionResult.success) {
+    const formatted = actionResult.error.issues
+      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
+      .join('\n');
+    core.setFailed(`Invalid action/stage combination:\n${formatted}`);
     return;
-  }
-
-  // Ensure only one of create, update, or destroy is true
-  const trueCount = [create, update, destroy].filter(Boolean).length;
-  if (trueCount !== 1) {
-    core.setFailed('Exactly one of "create", "update", or "destroy" must be true.');
-    return;
-  }
-
-  let actionType: 'create' | 'update' | 'destroy' = 'destroy';
-  if (create) {
-    actionType = 'create';
-  } else if (update) {
-    actionType = 'update';
   }
 
   const inputFile = resolve(process.cwd(), configPath);
@@ -46,33 +34,48 @@ export const getInputs = (): Inputs | undefined => {
   }
 
   const fileContent = readFileSync(inputFile).toString();
-  const config = yaml.load(fileContent) as Config;
+  const raw = yaml.load(fileContent);
 
-  const { namespace } = config;
-
-  if (!config.feature_flags || config.feature_flags.length === 0) {
-    core.setFailed(`Please provide at least one feature flag in the config file '${inputFile}'.`);
+  const result = configSchema.safeParse(raw);
+  if (!result.success) {
+    const formatted = result.error.issues
+      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
+      .join('\n');
+    core.setFailed(`Invalid config in '${inputFile}':\n${formatted}`);
     return;
   }
-  const featureFlags = config.feature_flags;
 
-  if (!config.subgraphs || config.subgraphs.length === 0) {
-    core.setFailed(`Please provide at least one subgraph in the config file '${inputFile}'.`);
+  const config = result.data;
+
+  if (
+    actionResult.data.action === 'preview' &&
+    (!config.previews || config.previews.length === 0)
+  ) {
+    core.setFailed(
+      `Preview action requires at least one preview in the config file '${inputFile}'.`,
+    );
     return;
   }
-  const subgraphs = config.subgraphs.map((subgraph) => ({
-    name: subgraph.name,
-    schemaPath: resolve(process.cwd(), subgraph.schema_path),
-    routingUrl: subgraph.routing_url,
+
+  if (actionResult.data.action === 'schema' && !config.check) {
+    core.setFailed(`Schema action requires a check section in the config file '${inputFile}'.`);
+    return;
+  }
+
+  // Resolve schema paths to absolute
+  const subgraphs = config.subgraphs.map((s) => ({
+    ...s,
+    schema_path: resolve(process.cwd(), s.schema_path),
   }));
 
   return {
-    actionType,
+    action: actionResult.data.action,
+    stage: actionResult.data.stage,
     cosmoApiKey,
     githubToken,
-    namespace,
-    featureFlags,
     subgraphs,
+    previews: config.previews ?? [],
+    check: config.check,
     configPath,
   };
 };

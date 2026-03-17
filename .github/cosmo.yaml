@@ -1,24 +1,34 @@
-version: '0.0.1'
-namespace: 'default'
-feature_flags:
-  - name: 'my-feature-flag-1'
-    labels:
-      - 'team=A'
-      - 'team=B'
+version: '1'
 
 subgraphs:
   - name: 'employees'
     schema_path: 'subgraphs/employees/schema.graphql'
-    routing_url: 'https://employees-api.fly.dev/graphql'
 
   - name: 'family'
     schema_path: 'subgraphs/family/schema.graphql'
-    routing_url: 'https://family-api.fly.dev/graphql'
 
   - name: 'products'
     schema_path: 'subgraphs/products/schema.graphql'
-    routing_url: 'https://product-api-fs.fly.dev/graphql'
 
   - name: 'hobbies'
     schema_path: 'subgraphs/hobbies/schema.graphql'
-    routing_url: 'https://hobbies-api.fly.dev/graphql'
+
+previews:
+  - name: 'my-feature-flag-1'
+    namespace: 'default'
+    labels:
+      - 'team=A'
+      - 'team=B'
+    subgraphs:
+      - name: 'employees'
+        routing_url: 'https://employees-api.fly.dev/graphql'
+      - name: 'family'
+        routing_url: 'https://family-api.fly.dev/graphql'
+      - name: 'products'
+        routing_url: 'https://product-api-fs.fly.dev/graphql'
+      - name: 'hobbies'
+        routing_url: 'https://hobbies-api.fly.dev/graphql'
+
+check:
+  namespaces:
+    - default

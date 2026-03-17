@@ -1,37 +1,28 @@
-export interface Config {
-  namespace: string;
-  feature_flags: FeatureFlag[];
-  subgraphs: {
-    name: string;
-    schema_path: string;
-    routing_url: string;
-  }[];
-}
+import type { ActionInput, CheckConfig, PreviewConfig, SubgraphConfig } from './schema';
 
-export interface FeatureFlag {
-  name: string;
-  labels: string[];
-}
-
-export interface Subgraph {
-  name: string;
-  schemaPath: string;
-  routingUrl: string;
-}
-
-export type ActionType = 'create' | 'update' | 'destroy';
+export type {
+  Config,
+  SubgraphConfig,
+  PreviewConfig,
+  PreviewSubgraph,
+  CheckConfig,
+  ActionInput,
+} from './schema';
 
 export interface Inputs {
   cosmoApiKey: string;
   githubToken: string;
-  actionType: ActionType;
-  namespace: string;
-  featureFlags: FeatureFlag[];
-  subgraphs: Subgraph[];
+  action: ActionInput['action'];
+  stage: ActionInput['stage'];
+  subgraphs: SubgraphConfig[];
+  previews: PreviewConfig[];
+  check: CheckConfig | undefined;
   configPath: string;
 }
 
 export interface FeatureSubgraphsOutputConfig {
+  previewName: string;
+  namespace: string;
   featureSubgraphName: string;
   schemaPath: string;
   routingUrl: string;
