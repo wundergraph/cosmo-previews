@@ -28911,6 +28911,58 @@ const previewDelete = async ({ inputs, prNumber, changedGraphQLFiles }) => {
 //#endregion
 //#region src/actions/schema.ts
 const COMMENT_MARKER = "<!-- cosmo-schema-check -->";
+const hasIssues = (r) => {
+	const breaking = r.changes?.breaking?.length ?? 0;
+	const compErrors = r.composition?.errors?.length ?? 0;
+	const compWarnings = r.composition?.warnings?.length ?? 0;
+	const lintErr = r.lint?.errors?.length ?? 0;
+	const lintWarn = r.lint?.warnings?.length ?? 0;
+	const pruneErr = r.graphPrune?.errors?.length ?? 0;
+	const pruneWarn = r.graphPrune?.warnings?.length ?? 0;
+	return breaking + compErrors + compWarnings + lintErr + lintWarn + pruneErr + pruneWarn > 0;
+};
+const buildDetailsSection = (results) => {
+	const withIssues = results.filter(hasIssues);
+	if (withIssues.length === 0) return "";
+	const sections = [];
+	for (const r of withIssues) {
+		const parts = [];
+		if (r.changes?.breaking?.length) parts.push("#### Breaking Changes\n| Type | Description |\n| --- | --- |", ...r.changes.breaking.map((c) => `| ${c.changeType} | ${c.message} |`));
+		if (r.composition?.errors?.length) parts.push("#### Composition Errors\n| Graph | Namespace | Message |\n| --- | --- | --- |", ...r.composition.errors.map((c) => `| ${c.federatedGraphName} | ${c.namespace} | ${c.message} |`));
+		if (r.composition?.warnings?.length) parts.push("#### Composition Warnings\n| Graph | Namespace | Message |\n| --- | --- | --- |", ...r.composition.warnings.map((c) => `| ${c.federatedGraphName} | ${c.namespace} | ${c.message} |`));
+		if (r.lint?.errors?.length) parts.push("#### Lint Errors\n| Rule | Message | Line |\n| --- | --- | --- |", ...r.lint.errors.map((l) => `| ${l.lintRuleType} | ${l.message} | ${l.issueLocation?.line ?? "-"} |`));
+		if (r.lint?.warnings?.length) parts.push("#### Lint Warnings\n| Rule | Message | Line |\n| --- | --- | --- |", ...r.lint.warnings.map((l) => `| ${l.lintRuleType} | ${l.message} | ${l.issueLocation?.line ?? "-"} |`));
+		if (r.graphPrune?.errors?.length) parts.push("#### Graph Pruning Errors\n| Rule | Field Path | Message | Line |\n| --- | --- | --- | --- |", ...r.graphPrune.errors.map((g) => `| ${g.graphPruningRuleType} | ${g.fieldPath} | ${g.message} | ${g.issueLocation?.line ?? "-"} |`));
+		if (r.graphPrune?.warnings?.length) parts.push("#### Graph Pruning Warnings\n| Rule | Field Path | Message | Line |\n| --- | --- | --- | --- |", ...r.graphPrune.warnings.map((g) => `| ${g.graphPruningRuleType} | ${g.fieldPath} | ${g.message} | ${g.issueLocation?.line ?? "-"} |`));
+		const counts = [];
+		const errCount = (r.changes?.breaking?.length ?? 0) + (r.composition?.errors?.length ?? 0) + (r.lint?.errors?.length ?? 0) + (r.graphPrune?.errors?.length ?? 0);
+		const warnCount = (r.composition?.warnings?.length ?? 0) + (r.lint?.warnings?.length ?? 0) + (r.graphPrune?.warnings?.length ?? 0);
+		if (errCount > 0) counts.push(`${errCount} error${errCount === 1 ? "" : "s"}`);
+		if (warnCount > 0) counts.push(`${warnCount} warning${warnCount === 1 ? "" : "s"}`);
+		sections.push(`<details>\n<summary><b>${r.namespace} / ${r.subgraphName}</b> — ${counts.join(", ")}</summary>\n\n${parts.join("\n")}\n\n</details>`);
+	}
+	return sections.join("\n\n");
+};
+const upsertComment = async ({ githubToken, prNumber, context, body }) => {
+	const octokit = getOctokit(githubToken);
+	const { owner, repo } = context.repo;
+	const existing = (await octokit.rest.issues.listComments({
+		owner,
+		repo,
+		issue_number: prNumber
+	})).data.find((c) => c.body?.startsWith(COMMENT_MARKER));
+	await (existing ? octokit.rest.issues.updateComment({
+		owner,
+		repo,
+		comment_id: existing.id,
+		body
+	}) : octokit.rest.issues.createComment({
+		owner,
+		repo,
+		issue_number: prNumber,
+		body
+	}));
+};
 const schemaCheck = async ({ inputs, prNumber, context }) => {
 	if (!inputs.check) {
 		setFailed("Schema check requires a check section in the config.");
@@ -28939,6 +28991,9 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 			continue;
 		}
 		const lint = json.lint;
+		const changes = json.changes;
+		const composition = json.composition;
+		const graphPrune = json.graphPrune;
 		results.push({
 			namespace,
 			subgraphName: subgraph.name,
@@ -28946,7 +29001,11 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 			url: json.url ?? "",
 			lintErrors: lint?.errors?.length ?? 0,
 			lintWarnings: lint?.warnings?.length ?? 0,
-			message: json.message ?? ""
+			message: json.message ?? "",
+			changes,
+			composition,
+			lint,
+			graphPrune
 		});
 	}
 	if (results.length === 0) {
@@ -28955,13 +29014,15 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 	}
 	setOutput("schema_check_results", results);
 	const hasFailure = results.some((r) => r.status !== "success");
-	const body = `${COMMENT_MARKER}\n## Schema Check Results\n\n${`| Namespace | Subgraph | Status | Lint Errors | Lint Warnings | |
+	const table = `| Namespace | Subgraph | Status | Lint Errors | Lint Warnings | |
 | --- | --- | --- | --- | --- | --- |
 ${results.map((r) => {
 		const statusIcon = r.status === "success" ? "✅" : "❌";
 		const link = r.url ? `[View in Studio](${r.url})` : "-";
 		return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${r.lintErrors} | ${r.lintWarnings} | ${link} |`;
-	}).join("\n")}`}`;
+	}).join("\n")}`;
+	const details = buildDetailsSection(results);
+	const body = details ? `${COMMENT_MARKER}\n## Schema Check Results\n\n${table}\n\n---\n\n${details}` : `${COMMENT_MARKER}\n## Schema Check Results\n\n${table}`;
 	await upsertComment({
 		githubToken: inputs.githubToken,
 		prNumber,
@@ -28969,26 +29030,6 @@ ${results.map((r) => {
 		body
 	});
 	if (hasFailure) setFailed("One or more schema checks failed. See the PR comment for details.");
-};
-const upsertComment = async ({ githubToken, prNumber, context, body }) => {
-	const octokit = getOctokit(githubToken);
-	const { owner, repo } = context.repo;
-	const existing = (await octokit.rest.issues.listComments({
-		owner,
-		repo,
-		issue_number: prNumber
-	})).data.find((c) => c.body?.startsWith(COMMENT_MARKER));
-	await (existing ? octokit.rest.issues.updateComment({
-		owner,
-		repo,
-		comment_id: existing.id,
-		body
-	}) : octokit.rest.issues.createComment({
-		owner,
-		repo,
-		issue_number: prNumber,
-		body
-	}));
 };
 //#endregion
 //#region src/main.ts
