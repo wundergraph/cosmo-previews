@@ -28994,6 +28994,10 @@ const upsertComment = async ({ githubToken, prNumber, context, body }) => {
 };
 //#endregion
 //#region src/main.ts
+const installWgc = async () => {
+	info("Installing wgc CLI...");
+	await exec("npm install -g wgc@latest");
+};
 const exportApiKey = (apiKey) => {
 	exportVariable("COSMO_API_KEY", apiKey);
 	info("Environment variable COSMO_API_KEY is set.");
@@ -29027,6 +29031,7 @@ async function run() {
 		const prNumber = pullRequest.number;
 		const inputs = getInputs();
 		if (!inputs) return;
+		await installWgc();
 		exportApiKey(inputs.cosmoApiKey);
 		const organizationDetails = await getOrganizationDetails();
 		if (!organizationDetails) {
