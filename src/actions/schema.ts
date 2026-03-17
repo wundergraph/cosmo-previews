@@ -39,8 +39,6 @@ export interface CheckResult {
   subgraphName: string;
   status: string;
   url: string;
-  lintErrors: number;
-  lintWarnings: number;
   message: string;
   changes?: {
     breaking: SchemaChange[];
@@ -238,8 +236,6 @@ export const schemaCheck = async ({
           subgraphName: subgraph.name,
           status: exitCode === 0 ? 'unknown' : 'error',
           url: '',
-          lintErrors: 0,
-          lintWarnings: 0,
           message: 'Failed to parse wgc output',
         });
         continue;
@@ -254,8 +250,6 @@ export const schemaCheck = async ({
         subgraphName: subgraph.name,
         status: (json.status as string) ?? 'unknown',
         url: (json.url as string) ?? '',
-        lintErrors: lint?.errors?.length ?? 0,
-        lintWarnings: lint?.warnings?.length ?? 0,
         message: (json.message as string) ?? '',
         changes,
         composition,
@@ -275,11 +269,20 @@ export const schemaCheck = async ({
   const hasFailure = results.some((r) => r.status !== 'success');
 
   const tableHeader =
-    '| Namespace | Subgraph | Status | Lint Errors | Lint Warnings | |\n| --- | --- | --- | --- | --- | --- |\n';
+    '| Namespace | Subgraph | Status | Errors | Warnings | |\n| --- | --- | --- | --- | --- | --- |\n';
   const tableRows = results.map((r) => {
     const statusIcon = r.status === 'success' ? '✅' : '❌';
     const link = r.url ? `[View in Studio](${r.url})` : '-';
-    return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${r.lintErrors} | ${r.lintWarnings} | ${link} |`;
+    const errors =
+      (r.changes?.breaking?.length ?? 0) +
+      (r.composition?.errors?.length ?? 0) +
+      (r.lint?.errors?.length ?? 0) +
+      (r.graphPrune?.errors?.length ?? 0);
+    const warnings =
+      (r.composition?.warnings?.length ?? 0) +
+      (r.lint?.warnings?.length ?? 0) +
+      (r.graphPrune?.warnings?.length ?? 0);
+    return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${errors} | ${warnings} | ${link} |`;
   });
   const table = `${tableHeader}${tableRows.join('\n')}`;
 

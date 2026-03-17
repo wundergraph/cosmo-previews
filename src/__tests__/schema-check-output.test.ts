@@ -7,8 +7,6 @@ const baseResult: CheckResult = {
   subgraphName: 'my-subgraph',
   status: 'success',
   url: '',
-  lintErrors: 0,
-  lintWarnings: 0,
   message: '',
 };
 

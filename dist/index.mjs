@@ -28984,8 +28984,6 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 				subgraphName: subgraph.name,
 				status: exitCode === 0 ? "unknown" : "error",
 				url: "",
-				lintErrors: 0,
-				lintWarnings: 0,
 				message: "Failed to parse wgc output"
 			});
 			continue;
@@ -28999,8 +28997,6 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 			subgraphName: subgraph.name,
 			status: json.status ?? "unknown",
 			url: json.url ?? "",
-			lintErrors: lint?.errors?.length ?? 0,
-			lintWarnings: lint?.warnings?.length ?? 0,
 			message: json.message ?? "",
 			changes,
 			composition,
@@ -29014,12 +29010,14 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 	}
 	setOutput("schema_check_results", results);
 	const hasFailure = results.some((r) => r.status !== "success");
-	const table = `| Namespace | Subgraph | Status | Lint Errors | Lint Warnings | |
+	const table = `| Namespace | Subgraph | Status | Errors | Warnings | |
 | --- | --- | --- | --- | --- | --- |
 ${results.map((r) => {
 		const statusIcon = r.status === "success" ? "✅" : "❌";
 		const link = r.url ? `[View in Studio](${r.url})` : "-";
-		return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${r.lintErrors} | ${r.lintWarnings} | ${link} |`;
+		const errors = (r.changes?.breaking?.length ?? 0) + (r.composition?.errors?.length ?? 0) + (r.lint?.errors?.length ?? 0) + (r.graphPrune?.errors?.length ?? 0);
+		const warnings = (r.composition?.warnings?.length ?? 0) + (r.lint?.warnings?.length ?? 0) + (r.graphPrune?.warnings?.length ?? 0);
+		return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${errors} | ${warnings} | ${link} |`;
 	}).join("\n")}`;
 	const details = buildDetailsSection(results);
 	const body = details ? `${COMMENT_MARKER}\n## Schema Check Results\n\n${table}\n\n---\n\n${details}` : `${COMMENT_MARKER}\n## Schema Check Results\n\n${table}`;
