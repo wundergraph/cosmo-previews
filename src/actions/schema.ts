@@ -34,7 +34,7 @@ interface GraphPruneIssue {
   issueLocation?: { line?: number };
 }
 
-interface CheckResult {
+export interface CheckResult {
   namespace: string;
   subgraphName: string;
   status: string;
@@ -60,7 +60,7 @@ interface CheckResult {
   };
 }
 
-const hasIssues = (r: CheckResult): boolean => {
+export const hasIssues = (r: CheckResult): boolean => {
   const breaking = r.changes?.breaking?.length ?? 0;
   const compErrors = r.composition?.errors?.length ?? 0;
   const compWarnings = r.composition?.warnings?.length ?? 0;
@@ -71,7 +71,7 @@ const hasIssues = (r: CheckResult): boolean => {
   return breaking + compErrors + compWarnings + lintErr + lintWarn + pruneErr + pruneWarn > 0;
 };
 
-const buildDetailsSection = (results: CheckResult[]): string => {
+export const buildDetailsSection = (results: CheckResult[]): string => {
   const withIssues = results.filter(hasIssues);
   if (withIssues.length === 0) {
     return '';
