@@ -32,7 +32,8 @@ type Queries {
 }
 
 type Mutation {
-  addFact(fact: TopSecretFactInput!): TopSecretFact! @requiresScopes(scopes: [["write:fact"], ["write:all"]])
+  addFact(fact: TopSecretFactInput!): TopSecretFact!
+    @requiresScopes(scopes: [["write:fact"], ["write:all"]])
 }
 
 input TopSecretFactInput {

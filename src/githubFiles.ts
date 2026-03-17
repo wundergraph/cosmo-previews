@@ -14,11 +14,13 @@ export enum ChangeTypeEnum {
   Unknown = 'X',
 }
 
-export type ChangedFiles = {
-  [key in ChangeTypeEnum]: string[];
-};
+export type ChangedFiles = Record<ChangeTypeEnum, string[]>;
 
-export const getChangedFilesFromGithubAPI = async ({ githubToken }: { githubToken: string }): Promise<ChangedFiles> => {
+export const getChangedFilesFromGithubAPI = async ({
+  githubToken,
+}: {
+  githubToken: string;
+}): Promise<ChangedFiles> => {
   const octokit = github.getOctokit(githubToken);
   const changedFiles: ChangedFiles = {
     [ChangeTypeEnum.Added]: [],
@@ -41,7 +43,9 @@ export const getChangedFilesFromGithubAPI = async ({ githubToken }: { githubToke
   });
 
   const paginatedResponse =
-    await octokit.paginate<RestEndpointMethodTypes['pulls']['listFiles']['response']['data'][0]>(options);
+    await octokit.paginate<RestEndpointMethodTypes['pulls']['listFiles']['response']['data'][0]>(
+      options,
+    );
 
   core.info(`Found ${paginatedResponse.length} changed files from GitHub API`);
   const statusMap: Record<string, ChangeTypeEnum> = {
@@ -54,7 +58,7 @@ export const getChangedFilesFromGithubAPI = async ({ githubToken }: { githubToke
     unchanged: ChangeTypeEnum.Unmerged,
   };
 
-  for await (const item of paginatedResponse) {
+  for (const item of paginatedResponse) {
     const changeType: ChangeTypeEnum = statusMap[item.status] || ChangeTypeEnum.Unknown;
 
     if (changeType === ChangeTypeEnum.Renamed) {
@@ -68,22 +72,20 @@ export const getChangedFilesFromGithubAPI = async ({ githubToken }: { githubToke
   return changedFiles;
 };
 
-export const isWindows = (): boolean => {
-  return process.platform === 'win32';
-};
+export const isWindows = (): boolean => process.platform === 'win32';
 
 export const normalizeSeparators = (p: string): string => {
   // Windows
   if (isWindows()) {
     // Convert slashes on Windows
-    p = p.replace(/\//g, '\\');
+    p = p.replaceAll('/', '\\');
 
     // Remove redundant slashes
     const isUnc = /^\\\\+[^\\]/.test(p);
-    p = (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\');
+    p = (isUnc ? '\\' : '') + p.replaceAll(/\\\\+/g, '\\');
   } else {
     // Remove redundant slashes on Linux/macOS
-    p = p.replace(/\/\/+/g, '/');
+    p = p.replaceAll(/\/\/+/g, '/');
   }
 
   return p;
@@ -155,14 +157,20 @@ export const getRemovedGraphQLFilesInLastCommit = async ({
   const modifiedFiles = commitFiles.data.files?.filter((file) => file.status === 'modified');
   const modifiedFilePaths = modifiedFiles.map((file) => file.filename);
 
-  const modifiedGraphQLFiles: string[] = mm(modifiedFilePaths, ['**/*.graphql', '**/*.gql', '**/*.graphqls'], {
-    dot: true,
-    noext: true,
-  }).map((element) => normalizeSeparators(element));
+  const modifiedGraphQLFiles: string[] = mm(
+    modifiedFilePaths,
+    ['**/*.graphql', '**/*.gql', '**/*.graphqls'],
+    {
+      dot: true,
+      noext: true,
+    },
+  ).map((element) => normalizeSeparators(element));
 
   // find the file changes which exist in the last commit, but not in the current PR
   // happens when a file is removed in the last commit, or when the changes are reverted.
-  const removedGraphQLFiles = modifiedGraphQLFiles.filter((file) => !changedGraphQLFilesInPr.includes(file));
+  const removedGraphQLFiles = modifiedGraphQLFiles.filter(
+    (file) => !changedGraphQLFilesInPr.includes(file),
+  );
 
   return removedGraphQLFiles;
 };

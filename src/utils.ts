@@ -1,6 +1,7 @@
 import * as github from '@actions/github';
-import { SubgraphCommandJsonOutput } from 'wgc/dist/src/core/types/types.js';
-import { Context } from '@actions/github/lib/context.js';
+import type { SubgraphCommandJsonOutput } from 'wgc/dist/src/core/types/types';
+
+type Context = typeof github.context;
 
 export const addComment = async ({
   githubToken,
@@ -16,9 +17,7 @@ export const addComment = async ({
   prNumber: number;
   deployedFeatureFlags: string[];
   featureSubgraphs: string[];
-  featureFlagErrorOutputs: {
-    [key: string]: SubgraphCommandJsonOutput;
-  };
+  featureFlagErrorOutputs: Record<string, SubgraphCommandJsonOutput>;
   context: Context;
   organizationSlug: string;
   namespace: string;
@@ -35,7 +34,9 @@ export const addComment = async ({
     if (
       comment.body &&
       (comment.body.startsWith('### 🚀  The following feature flags have been deployed:') ||
-        comment.body.startsWith('\n ### ❌ The following feature flags failed to deploy in these federated graphs:'))
+        comment.body.startsWith(
+          '\n ### ❌ The following feature flags failed to deploy in these federated graphs:',
+        ))
     ) {
       await octokit.rest.issues.deleteComment({
         comment_id: comment.id,
@@ -47,10 +48,11 @@ export const addComment = async ({
 
   // Generate Markdown table
   const tableHeader = '| Feature Flag | Feature Subgraphs |\n| --- | --- |\n';
-  const tableBody = deployedFeatureFlags.map((name) => {
-    return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${featureSubgraphs.join(', ')} |`;
-  });
-  const markdownTable = `${tableHeader}${tableBody}`;
+  const tableBody = deployedFeatureFlags.map(
+    (name) =>
+      `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${featureSubgraphs.join(', ')} |`,
+  );
+  const markdownTable = `${tableHeader}${tableBody.join('\n')}`;
 
   if (Object.keys(featureFlagErrorOutputs).length === 0) {
     await octokit.rest.issues.createComment({
@@ -68,28 +70,25 @@ export const addComment = async ({
     const failedFFTableHeader = '| Feature Flag | Federated Graph | Error |\n| --- | --- | --- |\n';
     const failedFFTableBody = failedFeatureFlags.map((name) => {
       if (featureFlagErrorOutputs[name].compositionErrors.length > 0) {
-        const compositionErrors = featureFlagErrorOutputs[name].compositionErrors;
+        const { compositionErrors } = featureFlagErrorOutputs[name];
         const compositionError = compositionErrors.find((error) => error.featureFlag === name);
         if (compositionError) {
           return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${compositionError.federatedGraphName} | ${compositionError.message.replaceAll('\n', '<br>')} |`;
-        } else {
-          const federatedGraphNames = [...new Set(compositionErrors.map((error) => error.federatedGraphName))];
-          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
         }
+        const federatedGraphNames = [
+          ...new Set(compositionErrors.map((error) => error.federatedGraphName)),
+        ];
+        return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
       } else if (featureFlagErrorOutputs[name].deploymentErrors.length > 0) {
-        const deploymentErrors = featureFlagErrorOutputs[name].deploymentErrors;
-        const deploymentError = deploymentErrors.find((error) => error.featureFlag === name);
-        if (deploymentError) {
-          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${deploymentError.federatedGraphName} | ${deploymentError.message.replaceAll('\n', '<br>')} |`;
-        } else {
-          const federatedGraphNames = [...new Set(deploymentErrors.map((error) => error.federatedGraphName))];
-          return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
-        }
-      } else {
-        return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
+        const { deploymentErrors } = featureFlagErrorOutputs[name];
+        const federatedGraphNames = [
+          ...new Set(deploymentErrors.map((error) => error.federatedGraphName)),
+        ];
+        return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | ${federatedGraphNames.join(',')} | ${featureFlagErrorOutputs[name].message}. Please check the compositions page of the respective federated graphs for more details. |`;
       }
+      return `| [${name}](https://cosmo.wundergraph.com/${organizationSlug}/feature-flags/${name}?namespace=${namespace}) | - | ${featureFlagErrorOutputs[name].message} |`;
     });
-    const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody}`;
+    const failedFFMarkdownTable = `${failedFFTableHeader}${failedFFTableBody.join('\n')}`;
     body += `\n ### ❌ The following feature flags failed to deploy in these federated graphs: \n ${failedFFMarkdownTable}`;
 
     await octokit.rest.issues.createComment({

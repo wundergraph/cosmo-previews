@@ -1,19 +1,22 @@
-/* eslint-disable no-template-curly-in-string */
 import { resolve } from 'node:path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
-import { SubgraphCommandJsonOutput, WhoAmICommandJsonOutput } from 'wgc/dist/src/core/types/types.js';
-import { Context } from '@actions/github/lib/context.js';
-import { getInputs } from './inputs.js';
-import { addComment } from './utils.js';
+import type {
+  SubgraphCommandJsonOutput,
+  WhoAmICommandJsonOutput,
+} from 'wgc/dist/src/core/types/types';
+import { getInputs } from './inputs';
+import { addComment } from './utils';
 import {
   getChangedFilesFromGithubAPI,
   getFilteredChangedFiles,
   getRemovedGraphQLFilesInLastCommit,
   hasCosmoConfigChangedInLastCommit,
-} from './githubFiles.js';
-import { FeatureSubgraphsOutputConfig, Inputs } from './types.js';
+} from './githubFiles';
+import type { FeatureSubgraphsOutputConfig, Inputs } from './types';
+
+type Context = typeof github.context;
 
 /**
  * The main function for the action.
@@ -21,7 +24,7 @@ import { FeatureSubgraphsOutputConfig, Inputs } from './types.js';
  */
 export async function run(): Promise<void> {
   try {
-    const context = github.context;
+    const { context } = github;
 
     const pullRequest = context.payload.pull_request;
     if (!pullRequest) {
@@ -148,13 +151,13 @@ const create = async ({
   // Create the resources
   const featureSubgraphNames: string[] = [];
   const deployedFeatureFlags: string[] = [];
-  const featureFlagErrorOutputs: {
-    [key: string]: SubgraphCommandJsonOutput;
-  } = {};
+  const featureFlagErrorOutputs: Record<string, SubgraphCommandJsonOutput> = {};
   const featureSubgraphsToDeploy: FeatureSubgraphsOutputConfig[] = [];
 
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
+    const subgraph = inputs.subgraphs.find(
+      (s) => resolve(process.cwd(), changedFile) === s.schemaPath,
+    );
     if (!subgraph) {
       continue;
     }
@@ -237,9 +240,7 @@ const update = async ({
   // Update the resources
   const featureSubgraphNames: string[] = [];
   const deployedFeatureFlags: string[] = [];
-  const featureFlagErrorOutputs: {
-    [key: string]: SubgraphCommandJsonOutput;
-  } = {};
+  const featureFlagErrorOutputs: Record<string, SubgraphCommandJsonOutput> = {};
   const featureSubgraphsToDeploy: FeatureSubgraphsOutputConfig[] = [];
   const featureSubgraphsToDestroy: FeatureSubgraphsOutputConfig[] = [];
 
@@ -251,7 +252,9 @@ const update = async ({
 
   // delete feature subgraphs which were removed in the last commit
   for (const removedFile of removedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), removedFile) === subgraph.schemaPath);
+    const subgraph = inputs.subgraphs.find(
+      (s) => resolve(process.cwd(), removedFile) === s.schemaPath,
+    );
     if (!subgraph) {
       continue;
     }
@@ -268,7 +271,9 @@ const update = async ({
   }
 
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
+    const subgraph = inputs.subgraphs.find(
+      (s) => resolve(process.cwd(), changedFile) === s.schemaPath,
+    );
     if (!subgraph) {
       continue;
     }
@@ -310,7 +315,9 @@ const update = async ({
 
     if (listOutput) {
       const jsonOutput = JSON.parse(listOutput);
-      const featureFlagExists = jsonOutput.find((flag: { name: string }) => flag.name === featureFlagName);
+      const featureFlagExists = jsonOutput.find(
+        (flag: { name: string }) => flag.name === featureFlagName,
+      );
       if (!featureFlagExists) {
         commandName = 'create';
       }
@@ -377,7 +384,9 @@ const destroy = async ({
     await exec.exec(command);
   }
   for (const changedFile of changedGraphQLFiles) {
-    const subgraph = inputs.subgraphs.find((subgraph) => resolve(process.cwd(), changedFile) === subgraph.schemaPath);
+    const subgraph = inputs.subgraphs.find(
+      (s) => resolve(process.cwd(), changedFile) === s.schemaPath,
+    );
     if (!subgraph) {
       continue;
     }

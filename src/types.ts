@@ -1,4 +1,4 @@
-export type Config = {
+export interface Config {
   namespace: string;
   feature_flags: FeatureFlag[];
   subgraphs: {
@@ -6,22 +6,22 @@ export type Config = {
     schema_path: string;
     routing_url: string;
   }[];
-};
+}
 
-export type FeatureFlag = {
+export interface FeatureFlag {
   name: string;
   labels: string[];
-};
+}
 
-export type Subgraph = {
+export interface Subgraph {
   name: string;
   schemaPath: string;
   routingUrl: string;
-};
+}
 
 export type ActionType = 'create' | 'update' | 'destroy';
 
-export type Inputs = {
+export interface Inputs {
   cosmoApiKey: string;
   githubToken: string;
   actionType: ActionType;
@@ -29,11 +29,11 @@ export type Inputs = {
   featureFlags: FeatureFlag[];
   subgraphs: Subgraph[];
   configPath: string;
-};
+}
 
-export type FeatureSubgraphsOutputConfig = {
+export interface FeatureSubgraphsOutputConfig {
   featureSubgraphName: string;
   schemaPath: string;
   routingUrl: string;
   baseSubgraphName: string;
-};
+}

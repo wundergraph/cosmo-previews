@@ -18,30 +18,29 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         id: setup-node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.18.3
-          cache: npm
+          node-version: 24
+          cache: pnpm
 
       - name: Install wgc
-        run: npm i -g wgc@latest
+        run: pnpm add -g wgc@latest
 
-      # 1. Create & Publish feature subgraph based on cosmo.yaml
-      # 2. Create a new feature flag
       - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
-          create: true # Create the feature flag + subgraphs from cosmo.yaml
+          create: true
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
-          github_token: ${{ secrets. GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: |
           echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
-
-  # run the job to deploy all the changed subgraphs here.
 
   update:
     runs-on: ubuntu-latest
@@ -51,23 +50,26 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         id: setup-node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.18.3
-          cache: npm
+          node-version: 24
+          cache: pnpm
 
       - name: Install wgc
-        run: npm i -g wgc@latest
+        run: pnpm add -g wgc@latest
 
       - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
-          update: true # Only update the feature subgraphs from cosmo.yaml
+          update: true
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
-          github_token: ${{ secrets. GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: |
           echo "${{ steps.ff.outputs.feature_subgraphs_to_deploy }}"
@@ -81,21 +83,24 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         id: setup-node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.18.3
-          cache: npm
+          node-version: 24
+          cache: pnpm
 
       - name: Install wgc
-        run: npm i -g wgc@latest
+        run: pnpm add -g wgc@latest
 
       - uses: ./
         id: ff
         with:
           config_path: .github/cosmo.yaml
-          destroy: true # Only destroy the feature flag + subgraphs from cosmo.yaml
+          destroy: true
           cosmo_api_key: ${{ secrets.COSMO_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - run: |

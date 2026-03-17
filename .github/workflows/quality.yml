@@ -1,0 +1,49 @@
+name: Quality
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check dist is up to date
+        run: |
+          if [ -n "$(git diff --name-only -- 'dist')" ]; then
+            echo "::error::dist files are out of date. Run 'pnpm build' and commit the changes."
+            git diff --name-only -- 'dist'
+            exit 1
+          fi
+
+      - name: Types
+        run: pnpm lint:types
+
+      - name: Lint
+        run: pnpm lint -- --threads 4 --format github
+
+      - name: Test
+        run: pnpm test:ci
+
+      - name: Format
+        run: pnpm format

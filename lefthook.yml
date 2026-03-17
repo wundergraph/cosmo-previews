@@ -1,0 +1,10 @@
+pre-commit:
+  commands:
+    lint:
+      glob: '*.{js,ts}'
+      run: pnpm oxlint --type-aware --fix --quiet {staged_files}
+      stage_fixed: true
+    format:
+      glob: '*.{js,ts,json,yml,yaml}'
+      run: pnpm oxfmt {staged_files}
+      stage_fixed: true
