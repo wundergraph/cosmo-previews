@@ -7,11 +7,6 @@ import { getChangedFilesFromGithubAPI, getFilteredChangedFiles } from './githubF
 import { checkConfigChanged, previewCreate, previewDelete, previewUpdate } from './actions/preview';
 import { schemaCheck } from './actions/schema';
 
-const installWgc = async () => {
-  core.info('Installing wgc CLI...');
-  await exec.exec('npm install -g wgc@latest');
-};
-
 const exportApiKey = (apiKey: string) => {
   core.exportVariable('COSMO_API_KEY', apiKey);
   core.info('Environment variable COSMO_API_KEY is set.');
@@ -56,7 +51,6 @@ export async function run(): Promise<void> {
       return;
     }
 
-    await installWgc();
     exportApiKey(inputs.cosmoApiKey);
     const organizationDetails = await getOrganizationDetails();
     if (!organizationDetails) {

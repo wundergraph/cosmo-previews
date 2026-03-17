@@ -1,3 +1,6 @@
+import { readFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
@@ -35,47 +38,51 @@ export const schemaCheck = async ({
 
   for (const subgraph of inputs.subgraphs) {
     for (const namespace of inputs.check.namespaces) {
-      const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
-      let output = '';
-      const options = {
-        listeners: {
-          stdout: (data: Buffer) => {
-            output += data.toString();
-          },
-        },
-        ignoreReturnCode: true,
-      };
+      const outFile = join(
+        tmpdir(),
+        `cosmo-check-${subgraph.name}-${namespace}-${Date.now()}.json`,
+      );
+      const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j --out ${outFile}`;
 
-      await exec.exec(command, [], options);
+      const exitCode = await exec.exec(command, [], { ignoreReturnCode: true });
 
-      if (!output) {
+      let json: Record<string, unknown> | undefined;
+      try {
+        const fileContent = readFileSync(outFile, 'utf8');
+        json = JSON.parse(fileContent);
+        unlinkSync(outFile);
+      } catch {
+        // File may not exist if the command failed before writing
+      }
+
+      if (!json) {
         results.push({
           namespace,
           subgraphName: subgraph.name,
-          status: 'error',
+          status: exitCode === 0 ? 'unknown' : 'error',
           url: '',
           lintErrors: 0,
           lintWarnings: 0,
-          message: 'No output from wgc subgraph check',
+          message: 'Failed to parse wgc output',
         });
         continue;
       }
 
-      const json = JSON.parse(output);
+      const lint = json.lint as { errors?: unknown[]; warnings?: unknown[] } | undefined;
       results.push({
         namespace,
         subgraphName: subgraph.name,
-        status: json.status ?? 'unknown',
-        url: json.url ?? '',
-        lintErrors: json.lint?.errors?.length ?? 0,
-        lintWarnings: json.lint?.warnings?.length ?? 0,
-        message: json.message ?? '',
+        status: (json.status as string) ?? 'unknown',
+        url: (json.url as string) ?? '',
+        lintErrors: lint?.errors?.length ?? 0,
+        lintWarnings: lint?.warnings?.length ?? 0,
+        message: (json.message as string) ?? '',
       });
     }
   }
 
   if (results.length === 0) {
-    core.info('No subgraph schema changes detected. Skipping schema check.');
+    core.info('No subgraphs configured for schema checks.');
     return;
   }
 

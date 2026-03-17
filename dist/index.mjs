@@ -8,8 +8,9 @@ import * as path$3 from "path";
 import * as events from "events";
 import * as child from "child_process";
 import { setTimeout as setTimeout$1 } from "timers";
-import { existsSync as existsSync$1, readFileSync as readFileSync$1 } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync as existsSync$1, readFileSync as readFileSync$1, unlinkSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -28917,39 +28918,39 @@ const schemaCheck = async ({ inputs, prNumber, context }) => {
 	}
 	const results = [];
 	for (const subgraph of inputs.subgraphs) for (const namespace of inputs.check.namespaces) {
-		const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
-		let output = "";
-		await exec(command, [], {
-			listeners: { stdout: (data) => {
-				output += data.toString();
-			} },
-			ignoreReturnCode: true
-		});
-		if (!output) {
+		const outFile = join(tmpdir(), `cosmo-check-${subgraph.name}-${namespace}-${Date.now()}.json`);
+		const exitCode = await exec(`wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j --out ${outFile}`, [], { ignoreReturnCode: true });
+		let json;
+		try {
+			const fileContent = readFileSync$1(outFile, "utf8");
+			json = JSON.parse(fileContent);
+			unlinkSync(outFile);
+		} catch {}
+		if (!json) {
 			results.push({
 				namespace,
 				subgraphName: subgraph.name,
-				status: "error",
+				status: exitCode === 0 ? "unknown" : "error",
 				url: "",
 				lintErrors: 0,
 				lintWarnings: 0,
-				message: "No output from wgc subgraph check"
+				message: "Failed to parse wgc output"
 			});
 			continue;
 		}
-		const json = JSON.parse(output);
+		const lint = json.lint;
 		results.push({
 			namespace,
 			subgraphName: subgraph.name,
 			status: json.status ?? "unknown",
 			url: json.url ?? "",
-			lintErrors: json.lint?.errors?.length ?? 0,
-			lintWarnings: json.lint?.warnings?.length ?? 0,
+			lintErrors: lint?.errors?.length ?? 0,
+			lintWarnings: lint?.warnings?.length ?? 0,
 			message: json.message ?? ""
 		});
 	}
 	if (results.length === 0) {
-		info("No subgraph schema changes detected. Skipping schema check.");
+		info("No subgraphs configured for schema checks.");
 		return;
 	}
 	setOutput("schema_check_results", results);
@@ -28991,10 +28992,6 @@ const upsertComment = async ({ githubToken, prNumber, context, body }) => {
 };
 //#endregion
 //#region src/main.ts
-const installWgc = async () => {
-	info("Installing wgc CLI...");
-	await exec("npm install -g wgc@latest");
-};
 const exportApiKey = (apiKey) => {
 	exportVariable("COSMO_API_KEY", apiKey);
 	info("Environment variable COSMO_API_KEY is set.");
@@ -29028,7 +29025,6 @@ async function run() {
 		const prNumber = pullRequest.number;
 		const inputs = getInputs();
 		if (!inputs) return;
-		await installWgc();
 		exportApiKey(inputs.cosmoApiKey);
 		const organizationDetails = await getOrganizationDetails();
 		if (!organizationDetails) {
