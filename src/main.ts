@@ -107,7 +107,7 @@ export async function run(): Promise<void> {
     } else if (inputs.action === 'schema') {
       switch (inputs.stage) {
         case 'check': {
-          await schemaCheck({ inputs, prNumber, changedGraphQLFiles, context });
+          await schemaCheck({ inputs, prNumber, context });
           break;
         }
       }

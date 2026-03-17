@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
@@ -21,12 +20,10 @@ interface CheckResult {
 export const schemaCheck = async ({
   inputs,
   prNumber,
-  changedGraphQLFiles,
   context,
 }: {
   inputs: Inputs;
   prNumber: number;
-  changedGraphQLFiles: string[];
   context: Context;
 }): Promise<void> => {
   if (!inputs.check) {
@@ -37,13 +34,6 @@ export const schemaCheck = async ({
   const results: CheckResult[] = [];
 
   for (const subgraph of inputs.subgraphs) {
-    const isChanged = changedGraphQLFiles.some(
-      (f) => resolve(process.cwd(), f) === subgraph.schema_path,
-    );
-    if (!isChanged) {
-      continue;
-    }
-
     for (const namespace of inputs.check.namespaces) {
       const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
       let output = '';

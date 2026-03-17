@@ -28910,46 +28910,43 @@ const previewDelete = async ({ inputs, prNumber, changedGraphQLFiles }) => {
 //#endregion
 //#region src/actions/schema.ts
 const COMMENT_MARKER = "<!-- cosmo-schema-check -->";
-const schemaCheck = async ({ inputs, prNumber, changedGraphQLFiles, context }) => {
+const schemaCheck = async ({ inputs, prNumber, context }) => {
 	if (!inputs.check) {
 		setFailed("Schema check requires a check section in the config.");
 		return;
 	}
 	const results = [];
-	for (const subgraph of inputs.subgraphs) {
-		if (!changedGraphQLFiles.some((f) => resolve(process.cwd(), f) === subgraph.schema_path)) continue;
-		for (const namespace of inputs.check.namespaces) {
-			const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
-			let output = "";
-			await exec(command, [], {
-				listeners: { stdout: (data) => {
-					output += data.toString();
-				} },
-				ignoreReturnCode: true
-			});
-			if (!output) {
-				results.push({
-					namespace,
-					subgraphName: subgraph.name,
-					status: "error",
-					url: "",
-					lintErrors: 0,
-					lintWarnings: 0,
-					message: "No output from wgc subgraph check"
-				});
-				continue;
-			}
-			const json = JSON.parse(output);
+	for (const subgraph of inputs.subgraphs) for (const namespace of inputs.check.namespaces) {
+		const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
+		let output = "";
+		await exec(command, [], {
+			listeners: { stdout: (data) => {
+				output += data.toString();
+			} },
+			ignoreReturnCode: true
+		});
+		if (!output) {
 			results.push({
 				namespace,
 				subgraphName: subgraph.name,
-				status: json.status ?? "unknown",
-				url: json.url ?? "",
-				lintErrors: json.lint?.errors?.length ?? 0,
-				lintWarnings: json.lint?.warnings?.length ?? 0,
-				message: json.message ?? ""
+				status: "error",
+				url: "",
+				lintErrors: 0,
+				lintWarnings: 0,
+				message: "No output from wgc subgraph check"
 			});
+			continue;
 		}
+		const json = JSON.parse(output);
+		results.push({
+			namespace,
+			subgraphName: subgraph.name,
+			status: json.status ?? "unknown",
+			url: json.url ?? "",
+			lintErrors: json.lint?.errors?.length ?? 0,
+			lintWarnings: json.lint?.warnings?.length ?? 0,
+			message: json.message ?? ""
+		});
 	}
 	if (results.length === 0) {
 		info("No subgraph schema changes detected. Skipping schema check.");
@@ -29086,7 +29083,6 @@ async function run() {
 				await schemaCheck({
 					inputs,
 					prNumber,
-					changedGraphQLFiles,
 					context
 				});
 				break;
