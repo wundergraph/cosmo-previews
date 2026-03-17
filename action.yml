@@ -30,6 +30,9 @@ outputs:
   feature_subgraphs_to_destroy:
     description: 'The list of feature subgraphs to destroy'
 
+  schema_check_results:
+    description: 'Schema check results per subgraph and namespace'
+
 runs:
   using: node24
   main: dist/index.mjs

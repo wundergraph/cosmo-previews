@@ -28909,8 +28909,88 @@ const previewDelete = async ({ inputs, prNumber, changedGraphQLFiles }) => {
 };
 //#endregion
 //#region src/actions/schema.ts
-const schemaCheck = () => {
-	info("Schema check is not yet implemented.");
+const COMMENT_MARKER = "<!-- cosmo-schema-check -->";
+const schemaCheck = async ({ inputs, prNumber, changedGraphQLFiles, context }) => {
+	if (!inputs.check) {
+		setFailed("Schema check requires a check section in the config.");
+		return;
+	}
+	const results = [];
+	for (const subgraph of inputs.subgraphs) {
+		if (!changedGraphQLFiles.some((f) => resolve(process.cwd(), f) === subgraph.schema_path)) continue;
+		for (const namespace of inputs.check.namespaces) {
+			const command = `wgc subgraph check ${subgraph.name} --schema ${subgraph.schema_path} -n ${namespace} -j`;
+			let output = "";
+			await exec(command, [], {
+				listeners: { stdout: (data) => {
+					output += data.toString();
+				} },
+				ignoreReturnCode: true
+			});
+			if (!output) {
+				results.push({
+					namespace,
+					subgraphName: subgraph.name,
+					status: "error",
+					url: "",
+					lintErrors: 0,
+					lintWarnings: 0,
+					message: "No output from wgc subgraph check"
+				});
+				continue;
+			}
+			const json = JSON.parse(output);
+			results.push({
+				namespace,
+				subgraphName: subgraph.name,
+				status: json.status ?? "unknown",
+				url: json.url ?? "",
+				lintErrors: json.lint?.errors?.length ?? 0,
+				lintWarnings: json.lint?.warnings?.length ?? 0,
+				message: json.message ?? ""
+			});
+		}
+	}
+	if (results.length === 0) {
+		info("No subgraph schema changes detected. Skipping schema check.");
+		return;
+	}
+	setOutput("schema_check_results", results);
+	const hasFailure = results.some((r) => r.status !== "success");
+	const body = `${COMMENT_MARKER}\n## Schema Check Results\n\n${`| Namespace | Subgraph | Status | Lint Errors | Lint Warnings | |
+| --- | --- | --- | --- | --- | --- |
+${results.map((r) => {
+		const statusIcon = r.status === "success" ? "✅" : "❌";
+		const link = r.url ? `[View in Studio](${r.url})` : "-";
+		return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${r.lintErrors} | ${r.lintWarnings} | ${link} |`;
+	}).join("\n")}`}`;
+	await upsertComment({
+		githubToken: inputs.githubToken,
+		prNumber,
+		context,
+		body
+	});
+	if (hasFailure) setFailed("One or more schema checks failed. See the PR comment for details.");
+};
+const upsertComment = async ({ githubToken, prNumber, context, body }) => {
+	const octokit = getOctokit(githubToken);
+	const { owner, repo } = context.repo;
+	const existing = (await octokit.rest.issues.listComments({
+		owner,
+		repo,
+		issue_number: prNumber
+	})).data.find((c) => c.body?.startsWith(COMMENT_MARKER));
+	await (existing ? octokit.rest.issues.updateComment({
+		owner,
+		repo,
+		comment_id: existing.id,
+		body
+	}) : octokit.rest.issues.createComment({
+		owner,
+		repo,
+		issue_number: prNumber,
+		body
+	}));
 };
 //#endregion
 //#region src/main.ts
@@ -28998,7 +29078,12 @@ async function run() {
 			}
 		} else if (inputs.action === "schema") switch (inputs.stage) {
 			case "check":
-				schemaCheck();
+				await schemaCheck({
+					inputs,
+					prNumber,
+					changedGraphQLFiles,
+					context
+				});
 				break;
 		}
 	} catch (error) {
