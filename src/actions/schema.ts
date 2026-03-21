@@ -161,7 +161,7 @@ export const buildDetailsSection = (results: CheckResult[]): string => {
     }
 
     sections.push(
-      `<details>\n<summary><b>${r.namespace} / ${r.subgraphName}</b> — ${counts.join(', ')}</summary>\n\n${parts.join('\n')}\n\n</details>`,
+      `<details>\n<summary><b>${r.subgraphName} / ${r.namespace}</b> — ${counts.join(', ')}</summary>\n\n${parts.join('\n')}\n\n</details>`,
     );
   }
 
@@ -269,7 +269,7 @@ export const schemaCheck = async ({
   const hasFailure = results.some((r) => r.status !== 'success');
 
   const tableHeader =
-    '| Namespace | Subgraph | Status | Errors | Warnings | |\n| --- | --- | --- | --- | --- | --- |\n';
+    '| Subgraph | Namespace | Status | Errors | Warnings | |\n| --- | --- | --- | --- | --- | --- |\n';
   const tableRows = results.map((r) => {
     const statusIcon = r.status === 'success' ? '✅' : '❌';
     const link = r.url ? `[View in Studio](${r.url})` : '-';
@@ -282,7 +282,7 @@ export const schemaCheck = async ({
       (r.composition?.warnings?.length ?? 0) +
       (r.lint?.warnings?.length ?? 0) +
       (r.graphPrune?.warnings?.length ?? 0);
-    return `| ${r.namespace} | ${r.subgraphName} | ${statusIcon} ${r.status} | ${errors} | ${warnings} | ${link} |`;
+    return `| ${r.subgraphName} | ${r.namespace} | ${statusIcon} ${r.status} | ${errors} | ${warnings} | ${link} |`;
   });
   const table = `${tableHeader}${tableRows.join('\n')}`;
 

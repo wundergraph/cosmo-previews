@@ -99,7 +99,7 @@ describe('buildDetailsSection', () => {
 
     const output = buildDetailsSection([result]);
     expect(output).toContain('<details>');
-    expect(output).toContain('<summary><b>dev1 / my-subgraph</b>');
+    expect(output).toContain('<summary><b>my-subgraph / dev1</b>');
     expect(output).toContain('1 warning');
     expect(output).toContain('#### Lint Warnings');
     expect(output).toContain('FIELD_NAMES_SHOULD_BE_CAMEL_CASE');
@@ -178,8 +178,8 @@ describe('buildDetailsSection', () => {
     ];
 
     const output = buildDetailsSection(results);
-    expect(output).toContain('<b>dev1 / svc-a</b>');
-    expect(output).toContain('<b>staging / svc-b</b>');
+    expect(output).toContain('<b>svc-a / dev1</b>');
+    expect(output).toContain('<b>svc-b / staging</b>');
     const detailsCount = (output.match(/<details>/g) ?? []).length;
     expect(detailsCount).toBe(2);
   });
@@ -198,8 +198,8 @@ describe('buildDetailsSection', () => {
     ];
 
     const output = buildDetailsSection(results);
-    expect(output).not.toContain('<b>dev1 / my-subgraph</b>');
-    expect(output).toContain('<b>staging / my-subgraph</b>');
+    expect(output).not.toContain('<b>my-subgraph / dev1</b>');
+    expect(output).toContain('<b>my-subgraph / staging</b>');
   });
 
   it('renders lint issue line as dash when missing', () => {
